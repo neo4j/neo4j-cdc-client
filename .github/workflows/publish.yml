@@ -18,7 +18,7 @@ jobs:
           java-version: '11'
           distribution: 'temurin'
           server-id: github
-          server-username: PACKAGES_USERNAME
+          server-username: ${{ vars.PACKAGES_USERNAME }}
           server-password: ${{ secrets.PACKAGES_PASSWORD }}
       - name: Build with Maven
         run: mvn -B package
