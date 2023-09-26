@@ -10,11 +10,6 @@ jobs:
   pr-check:
     if: ${{ github.event_name == 'pull_request' }}
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pull-requests: write
-      issues: write
-      statuses: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v3
@@ -22,9 +17,9 @@ jobs:
           node-version: '18.x'
       - run: npm install
       - run: npm ci
-      - run: npx danger ci --verbose --failOnErrorsdanger
+      - run: npx danger ci --verbose --failOnErrors
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DANGER_GITHUB_API_TOKEN: ${{ secrets.DANGER_GITHUB_TOKEN }}
 
   build:
     runs-on: ubuntu-latest
