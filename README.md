@@ -45,8 +45,8 @@ Currently, this library is deployed to Github Packages, so you need to configure
 ## Usage
 
 In order to use the client, create an instance of `org.neo4j.cdc.client.CDCClient` class, providing an instance of a
-driver instance, an optional polling interval to mimic streaming behaviour with under the hood polling, and optional
-list of selectors that you can specify what entities' changes you are interested.
+driver, an optional polling interval to mimic streaming behaviour with under the hood polling, and an optional
+list of selectors that you can use to specify in which entity changes you are interested.
 
 A typical use case would be;
 
