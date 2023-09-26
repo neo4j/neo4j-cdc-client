@@ -10,8 +10,6 @@ jobs:
   pr-check:
     if: ${{ github.event_name == 'pull_request' }}
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v3
@@ -25,8 +23,6 @@ jobs:
 
   build:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
     steps:
       - uses: actions/checkout@v4
       - name: Set up JDK 11
@@ -35,7 +31,11 @@ jobs:
           java-version: '11'
           distribution: 'temurin'
           server-id: github
-          server-username: ${{ vars.PACKAGES_USERNAME }}
-          server-password: ${{ secrets.PACKAGES_PASSWORD }}
+          server-username: MAVEN_USERNAME
+          server-password: MAVEN_PASSWORD
       - name: Build with Maven
         run: mvn -B verify
+        env:
+          MAVEN_USERNAME: ${{ vars.PACKAGES_USERNAME }}
+          MAVEN_PASSWORD: ${{ secrets.PACKAGES_PASSWORD }}
+

@@ -7,9 +7,6 @@ on:
 jobs:
   publish:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-
     steps:
       - uses: actions/checkout@v3
       - name: Set up JDK 11
@@ -18,11 +15,12 @@ jobs:
           java-version: '11'
           distribution: 'temurin'
           server-id: github
-          server-username: ${{ vars.PACKAGES_USERNAME }}
-          server-password: ${{ secrets.PACKAGES_PASSWORD }}
+          server-username: MAVEN_USERNAME
+          server-password: MAVEN_PASSWORD
       - name: Build with Maven
         run: mvn -B package
       - name: Publish to GitHub Packages Apache Maven
         run: mvn deploy
         env:
-          GITHUB_TOKEN: ${{ github.token }}
+          MAVEN_USERNAME: ${{ vars.PACKAGES_USERNAME }}
+          MAVEN_PASSWORD: ${{ secrets.PACKAGES_PASSWORD }}
