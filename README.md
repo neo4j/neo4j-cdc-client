@@ -2,6 +2,46 @@
 
 The project provides a CDC client library to be used among source connectors built by Neo4j.
 
+## Adding the package as a dependency
+
+Currently, this library is deployed to Github Packages, so you need to configure your maven repositories accordingly.
+
+* Add dependency
+
+```xml
+
+<dependency>
+    <groupId>org.neo4j.connectors</groupId>
+    <artifactId>cdc</artifactId>
+    <version>${cdc.version}</version>
+</dependency>
+```
+
+* Add repository
+
+```xml
+
+<repositories>
+    <repository>
+        <id>github</id>
+        <url>https://maven.pkg.github.com/neo4j/neo4j-cdc-client</url>
+    </repository>
+</repositories>
+```
+
+* Add access credentials
+  Create a personal access token in Github and give it a permission to read packages.
+  Then add the following content into `settings/servers` inside ~/.m2/settings.xml.
+
+```xml
+
+<server>
+    <id>github</id>
+    <username>your-github-user-name</username>
+    <password>your-personal-access-token</password>
+</server>
+```
+
 ## Usage
 
 In order to use the client, create an instance of `org.neo4j.cdc.client.CDCClient` class, providing an instance of a
@@ -19,6 +59,7 @@ import org.neo4j.cdc.client.model.ChangeIdentifier;
 
 class Main {
     public static void main() {
+        var driver = GraphDatabase.driver("neo4j://localhost");
         var client = new CDCClient(driver);
 
         // grab a change identifier to listen changes from.
@@ -35,13 +76,14 @@ class Main {
 * A simple use case with streaming
 
 ```java
+import java.time.Duration;
+
 import org.neo4j.cdc.client.CDCClient;
 import org.neo4j.cdc.client.model.ChangeIdentifier;
 
-import java.time.Duration;
-
 class Main {
     public static void main() {
+        var driver = GraphDatabase.driver("neo4j://localhost");
         var client = new CDCClient(driver);
 
         // grab a change identifier to listen changes from.
@@ -58,6 +100,11 @@ class Main {
 * A simple use case with selectors
 
 ```java
+import static java.util.Collections.emptySet;
+
+import java.time.Duration;
+import java.util.Set;
+
 import org.neo4j.cdc.client.CDCClient;
 import org.neo4j.cdc.client.model.ChangeIdentifier;
 import org.neo4j.cdc.client.model.EntityOperation;
@@ -65,20 +112,23 @@ import org.neo4j.cdc.client.selector.EntitySelector;
 import org.neo4j.cdc.client.selector.NodeSelector;
 import org.neo4j.cdc.client.selector.RelationshipNodeSelector;
 import org.neo4j.cdc.client.selector.RelationshipSelector;
-
-import java.time.Duration;
-import java.util.Collections;
-import java.util.Set;
-
-import static java.util.Collections.emptySet;
+import org.neo4j.driver.GraphDatabase;
 
 class Main {
     public static void main() {
-        var client = new CDCClient(driver,
+        var driver = GraphDatabase.driver("neo4j://localhost");
+        var client = new CDCClient(
+                driver,
                 new EntitySelector(EntityOperation.DELETE), // any delete operation on nodes or relationships
                 new NodeSelector(null, emptySet(), Set.of("Person")), // any operation on nodes with Person label
                 new NodeSelector(null, emptySet(), Set.of("Company")), // any operation on nodes with Company label
-                new RelationshipSelector(null, emptySet(), "WORKS_FOR", new RelationshipNodeSelector(Set.of("Person")), new RelationshipNodeSelector(Set.of("Company")))); // any operation on relationships of type WORKS_FOR between nodes of `Person` and `Company` labels
+                new RelationshipSelector(
+                        null,
+                        emptySet(),
+                        "WORKS_FOR",
+                        new RelationshipNodeSelector(Set.of("Person")),
+                        new RelationshipNodeSelector(
+                                Set.of("Company")))); // any operation on relationships of type WORKS_FOR between nodes of `Person` and `Company` labels
 
         // grab a change identifier to listen changes from.
         // could be retrieved by CDCClient#earliest or CDCClient#current methods.
@@ -109,21 +159,40 @@ They look like ordinary Cypher entity patterns with a couple of additional featu
 You can convert patterns into selectors as follows;
 
 ```java
-import org.neo4j.cdc.client.pattern.Pattern;
 import java.util.List;
+
+import org.neo4j.cdc.client.CDCClient;
+import org.neo4j.cdc.client.pattern.Pattern;
 
 class Main {
     public static void main() {
-        var selectors = List.of("(:Person{*})", "(:Company{*})", "(:Person)-[:WORKS_FOR{*}]->(:Company)")
-                .stream()
+        var driver = GraphDatabase.driver("neo4j://localhost");
+        var selectors = List.of("(:Person{*})", "(:Company{*})", "(:Person)-[:WORKS_FOR{*}]->(:Company)").stream()
                 .flatMap(Pattern::parse)
                 .flatMap(Pattern::toSelector)
                 .toList();
+        var client = new CDCClient(driver, selectors);
     }
 }
 ```
 
 ## Development & Contributions
+
+### Internal Maven Repository
+
+For the build to succeed, it needs the package [build-resources](https://github.com/neo4j/connectors-build-resources)
+that is being published to Github Packages.
+In order to access it, create a personal access token in Github and give it a permission to read packages.
+Then add the following content into `settings/servers` inside ~/.m2/settings.xml.
+
+```xml
+
+<server>
+    <id>github</id>
+    <username>your-github-user-name</username>
+    <password>your-personal-access-token</password>
+</server>
+```
 
 ### Build locally
 

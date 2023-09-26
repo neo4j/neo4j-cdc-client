@@ -8,10 +8,18 @@
     <packaging>jar</packaging>
     <name>cdc</name>
     <description>CDC Client Library</description>
+    <distributionManagement>
+        <repository>
+            <id>github</id>
+            <name>Github Packages</name>
+            <url>https://maven.pkg.github.com/neo4j/neo4j-cdc-client</url>
+        </repository>
+    </distributionManagement>
     <properties>
         <annotations.version>24.0.1</annotations.version>
         <antlr4.version>4.13.1</antlr4.version>
         <assertj-core.version>3.24.2</assertj-core.version>
+        <build-resources.version>1.0.0</build-resources.version>
         <commons-collections4.version>4.4</commons-collections4.version>
         <java.version>11</java.version>
         <junit-jupiter.version>5.10.0</junit-jupiter.version>
@@ -102,6 +110,12 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+    <pluginRepositories>
+        <pluginRepository>
+            <id>github</id>
+            <url>https://maven.pkg.github.com/neo4j/connectors-build-resources</url>
+        </pluginRepository>
+    </pluginRepositories>
     <build>
         <plugins>
             <plugin>
@@ -120,7 +134,7 @@
                     <dependency>
                         <groupId>org.neo4j.connectors</groupId>
                         <artifactId>build-resources</artifactId>
-                        <version>1.0.0-SNAPSHOT</version>
+                        <version>${build-resources.version}</version>
                     </dependency>
                 </dependencies>
                 <executions>
@@ -197,7 +211,7 @@
                     <dependency>
                         <groupId>org.neo4j.connectors</groupId>
                         <artifactId>build-resources</artifactId>
-                        <version>1.0.0-SNAPSHOT</version>
+                        <version>${build-resources.version}</version>
                     </dependency>
                 </dependencies>
                 <executions>
