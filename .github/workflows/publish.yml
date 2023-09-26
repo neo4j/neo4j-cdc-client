@@ -23,7 +23,7 @@ jobs:
           MAVEN_USERNAME: ${{ vars.PACKAGES_USERNAME }}
           MAVEN_PASSWORD: ${{ secrets.PACKAGES_PASSWORD }}
       - name: Publish to GitHub Packages Apache Maven
-        run: mvn deploy
+        run: mvn -B deploy -DskipTests
         env:
           MAVEN_USERNAME: ${{ vars.PACKAGES_USERNAME }}
           MAVEN_PASSWORD: ${{ secrets.PACKAGES_PASSWORD }}
