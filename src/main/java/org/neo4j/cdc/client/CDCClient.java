@@ -27,6 +27,7 @@ import org.neo4j.cdc.client.model.ChangeEvent;
 import org.neo4j.cdc.client.model.ChangeIdentifier;
 import org.neo4j.cdc.client.selector.Selector;
 import org.neo4j.driver.Driver;
+import org.neo4j.driver.SessionConfig;
 import org.neo4j.driver.reactive.RxResult;
 import org.neo4j.driver.reactive.RxSession;
 import org.neo4j.driver.types.MapAccessor;
@@ -46,6 +47,7 @@ public class CDCClient implements CDCService {
     private static final String CDC_QUERY_STATEMENT = "call cdc.query($from, $selectors)";
     private final Driver driver;
     private final List<Selector> selectors;
+    private final SessionConfigSupplier sessionConfigSupplier;
     private final Duration streamingPollInterval;
 
     public CDCClient(Driver driver, Selector... selectors) {
@@ -54,6 +56,22 @@ public class CDCClient implements CDCService {
 
     public CDCClient(Driver driver, Duration streamingPollInterval, Selector... selectors) {
         this.driver = Objects.requireNonNull(driver);
+        this.sessionConfigSupplier = () -> SessionConfig.builder().build();
+        this.streamingPollInterval = Objects.requireNonNull(streamingPollInterval);
+        this.selectors = selectors == null ? List.of() : Arrays.asList(selectors);
+    }
+
+    public CDCClient(Driver driver, SessionConfigSupplier sessionConfigSupplier, Selector... selectors) {
+        this(driver, sessionConfigSupplier, Duration.ofSeconds(1), selectors);
+    }
+
+    public CDCClient(
+            Driver driver,
+            SessionConfigSupplier sessionConfigSupplier,
+            Duration streamingPollInterval,
+            Selector... selectors) {
+        this.driver = Objects.requireNonNull(driver);
+        this.sessionConfigSupplier = sessionConfigSupplier;
         this.streamingPollInterval = Objects.requireNonNull(streamingPollInterval);
         this.selectors = selectors == null ? List.of() : Arrays.asList(selectors);
     }
@@ -71,7 +89,7 @@ public class CDCClient implements CDCService {
     @Override
     public Flux<ChangeEvent> query(ChangeIdentifier from) {
         return Flux.usingWhen(
-                        Mono.fromSupplier(driver::rxSession),
+                        Mono.fromSupplier(() -> driver.rxSession(sessionConfigSupplier.sessionConfig())),
                         (RxSession session) -> Flux.from(session.readTransaction(tx -> {
                             var params = Map.of(
                                     "from",
@@ -97,7 +115,7 @@ public class CDCClient implements CDCService {
         var cursor = new AtomicReference<>(from);
 
         var query = Flux.usingWhen(
-                Mono.fromSupplier(driver::rxSession),
+                Mono.fromSupplier(() -> driver.rxSession(sessionConfigSupplier.sessionConfig())),
                 (RxSession session) -> Flux.from(session.readTransaction(tx -> {
                     var params = Map.of(
                             "from",
@@ -136,7 +154,7 @@ public class CDCClient implements CDCService {
 
     private Mono<ChangeIdentifier> queryForChangeIdentifier(String query, String description) {
         return Mono.usingWhen(
-                        Mono.fromSupplier(driver::rxSession),
+                        Mono.fromSupplier(() -> driver.rxSession(sessionConfigSupplier.sessionConfig())),
                         (RxSession session) -> Mono.from(session.readTransaction(tx -> {
                             RxResult result = tx.run(query);
                             return Mono.from(result.records())
