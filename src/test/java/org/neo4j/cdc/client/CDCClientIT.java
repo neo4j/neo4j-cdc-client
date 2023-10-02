@@ -33,6 +33,7 @@ import org.neo4j.cdc.client.selector.NodeSelector;
 import org.neo4j.cdc.client.selector.RelationshipNodeSelector;
 import org.neo4j.cdc.client.selector.RelationshipSelector;
 import org.neo4j.driver.*;
+import org.neo4j.driver.exceptions.FatalDiscoveryException;
 import org.testcontainers.containers.Neo4jContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -112,6 +113,16 @@ public class CDCClientIT {
         StepVerifier.create(client.query(current))
                 .assertNext(n -> assertThat(n).extracting(ChangeEvent::getEvent).isInstanceOf(NodeEvent.class))
                 .verifyComplete();
+    }
+
+    @Test
+    void respectsSessionConfigSupplier() {
+        var client = new CDCClient(
+                driver,
+                () -> SessionConfig.builder().withDatabase("unknownDatabase").build());
+        StepVerifier.create(client.current())
+                .expectError(FatalDiscoveryException.class)
+                .verify();
     }
 
     @Test
