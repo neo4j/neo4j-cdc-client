@@ -4,10 +4,17 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.neo4j.connectors</groupId>
     <artifactId>cdc</artifactId>
-    <version>1.0.2-SNAPSHOT</version>
+    <version>1.0.2</version>
     <packaging>jar</packaging>
     <name>cdc</name>
     <description>CDC Client Library</description>
+    <licenses>
+        <license>
+            <name>Apache License, Version 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
     <distributionManagement>
         <repository>
             <id>github</id>
