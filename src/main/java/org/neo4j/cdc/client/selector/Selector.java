@@ -17,7 +17,9 @@
 package org.neo4j.cdc.client.selector;
 
 import java.util.Map;
+import java.util.Set;
 import org.neo4j.cdc.client.model.ChangeEvent;
+import org.neo4j.cdc.client.model.EntityOperation;
 
 public interface Selector {
 
@@ -26,4 +28,10 @@ public interface Selector {
     boolean matches(ChangeEvent e);
 
     ChangeEvent applyProperties(ChangeEvent e);
+
+    Selector withOperation(EntityOperation operation);
+
+    Selector withChangesTo(Set<String> changesTo);
+
+    Selector patchMetadata(Map<String, Object> metadata);
 }

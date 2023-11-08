@@ -46,15 +46,16 @@ public class NodeSelector extends EntitySelector {
     }
 
     public NodeSelector(@Nullable EntityOperation change, @NotNull Set<String> changesTo, @NotNull Set<String> labels) {
-        this(change, changesTo, labels, emptyMap());
+        this(change, changesTo, labels, emptyMap(), emptyMap());
     }
 
     public NodeSelector(
             @Nullable EntityOperation change,
             @NotNull Set<String> changesTo,
             @NotNull Set<String> labels,
-            @NotNull Map<String, Object> key) {
-        this(change, changesTo, labels, key, emptySet(), emptySet());
+            @NotNull Map<String, Object> key,
+            @NotNull Map<String, Object> metadata) {
+        this(change, changesTo, labels, key, emptySet(), emptySet(), metadata);
     }
 
     public NodeSelector(
@@ -64,7 +65,18 @@ public class NodeSelector extends EntitySelector {
             @NotNull Map<String, Object> key,
             @NotNull Set<String> includeProperties,
             @NotNull Set<String> excludeProperties) {
-        super(change, changesTo, includeProperties, excludeProperties);
+        this(change, changesTo, labels, key, includeProperties, excludeProperties, emptyMap());
+    }
+
+    public NodeSelector(
+            @Nullable EntityOperation change,
+            @NotNull Set<String> changesTo,
+            @NotNull Set<String> labels,
+            @NotNull Map<String, Object> key,
+            @NotNull Set<String> includeProperties,
+            @NotNull Set<String> excludeProperties,
+            @NotNull Map<String, Object> metadata) {
+        super(change, changesTo, includeProperties, excludeProperties, metadata);
 
         this.labels = Objects.requireNonNull(labels);
         this.key = Objects.requireNonNull(key);
@@ -133,5 +145,45 @@ public class NodeSelector extends EntitySelector {
         result = 31 * result + labels.hashCode();
         result = 31 * result + key.hashCode();
         return result;
+    }
+
+    @Override
+    public Selector withOperation(EntityOperation operation) {
+        return new NodeSelector(
+                operation,
+                getChangesTo(),
+                this.labels,
+                this.key,
+                this.getIncludeProperties(),
+                this.getExcludeProperties(),
+                this.getMetadata());
+    }
+
+    @Override
+    public Selector withChangesTo(Set<String> changesTo) {
+        return new NodeSelector(
+                this.getChange(),
+                changesTo,
+                this.labels,
+                this.key,
+                this.getIncludeProperties(),
+                this.getExcludeProperties(),
+                this.getMetadata());
+    }
+
+    @Override
+    public Selector patchMetadata(Map<String, Object> metadata) {
+        Map<String, Object> newMetadata = new HashMap<>();
+        newMetadata.putAll(this.getMetadata());
+        newMetadata.putAll(metadata);
+
+        return new NodeSelector(
+                this.getChange(),
+                this.getChangesTo(),
+                this.labels,
+                this.key,
+                this.getIncludeProperties(),
+                this.getExcludeProperties(),
+                newMetadata);
     }
 }

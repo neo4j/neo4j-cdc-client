@@ -627,7 +627,8 @@ public class CDCClientIT {
                                             new RelationshipNodeSelector(),
                                             emptyMap(),
                                             Set.of("*"),
-                                            emptySet()))
+                                            emptySet(),
+                                            emptyMap()))
                             .query(current))
                     .assertNext(n -> assertThat(n)
                             .satisfies(e ->
@@ -663,7 +664,8 @@ public class CDCClientIT {
                                             new RelationshipNodeSelector(),
                                             emptyMap(),
                                             Set.of("on"),
-                                            emptySet()))
+                                            emptySet(),
+                                            emptyMap()))
                             .query(current))
                     .assertNext(n -> assertThat(n)
                             .satisfies(e ->
@@ -700,7 +702,8 @@ public class CDCClientIT {
                                             new RelationshipNodeSelector(),
                                             emptyMap(),
                                             emptySet(),
-                                            Set.of("on")),
+                                            Set.of("on"),
+                                            emptyMap()),
                                     new RelationshipSelector(
                                             EntityOperation.CREATE,
                                             emptySet(),
@@ -709,7 +712,8 @@ public class CDCClientIT {
                                             new RelationshipNodeSelector(),
                                             emptyMap(),
                                             emptySet(),
-                                            Set.of("at")))
+                                            Set.of("at"),
+                                            emptyMap()))
                             .query(current))
                     .assertNext(n -> assertThat(n)
                             .satisfies(e ->

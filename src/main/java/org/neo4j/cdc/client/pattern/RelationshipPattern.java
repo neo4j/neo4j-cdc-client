@@ -16,9 +16,12 @@
  */
 package org.neo4j.cdc.client.pattern;
 
+import static java.util.Collections.emptySet;
+
 import java.util.*;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.neo4j.cdc.client.model.EntityOperation;
 import org.neo4j.cdc.client.selector.RelationshipNodeSelector;
 import org.neo4j.cdc.client.selector.RelationshipSelector;
 import org.neo4j.cdc.client.selector.Selector;
@@ -43,6 +46,12 @@ public class RelationshipPattern implements Pattern {
 
     @NotNull
     private final Set<String> excludeProperties;
+
+    private final Map<String, Object> metadata = new HashMap<>();
+
+    private EntityOperation entityOperation;
+
+    private Set<String> changesTo = emptySet();
 
     public RelationshipPattern(
             @Nullable String type,
@@ -135,27 +144,44 @@ public class RelationshipPattern implements Pattern {
         var result = new HashSet<Selector>();
 
         result.add(new RelationshipSelector(
-                null,
-                Collections.emptySet(),
+                entityOperation,
+                changesTo,
                 type,
                 new RelationshipNodeSelector(start.getLabels(), start.getKeyFilters()),
                 new RelationshipNodeSelector(end.getLabels(), end.getKeyFilters()),
                 keyFilters,
                 includeProperties,
-                excludeProperties));
+                excludeProperties,
+                metadata));
 
         if (bidirectional) {
             result.add(new RelationshipSelector(
-                    null,
-                    Collections.emptySet(),
+                    entityOperation,
+                    changesTo,
                     type,
                     new RelationshipNodeSelector(end.getLabels(), end.getKeyFilters()),
                     new RelationshipNodeSelector(start.getLabels(), start.getKeyFilters()),
                     keyFilters,
                     includeProperties,
-                    excludeProperties));
+                    excludeProperties,
+                    metadata));
         }
 
         return result;
+    }
+
+    @Override
+    public void withOperation(EntityOperation operation) {
+        this.entityOperation = operation;
+    }
+
+    @Override
+    public void withMetadata(Map<String, Object> metadata) {
+        this.metadata.putAll(metadata);
+    }
+
+    @Override
+    public void withChangesTo(Set<String> changesTo) {
+        this.changesTo = changesTo;
     }
 }

@@ -16,6 +16,7 @@
  */
 package org.neo4j.cdc.client.selector;
 
+import static java.util.Collections.emptyMap;
 import static java.util.Collections.emptySet;
 
 import java.util.*;
@@ -25,6 +26,11 @@ import org.jetbrains.annotations.Nullable;
 import org.neo4j.cdc.client.model.*;
 
 public class EntitySelector implements Selector {
+
+    public static final String METADATA_KEY_AUTHENTICATED_USER = "authenticatedUser";
+    public static final String METADATA_KEY_EXECUTING_USER = "executingUser";
+    public static final String METADATA_KEY_TX_METADATA = "txMetadata";
+
     @Nullable
     private final EntityOperation change;
 
@@ -37,27 +43,37 @@ public class EntitySelector implements Selector {
     @NotNull
     private final Set<String> excludeProperties;
 
+    @NotNull
+    private final Map<String, Object> metadata;
+
     public EntitySelector() {
         this(null);
     }
 
     public EntitySelector(@Nullable EntityOperation change) {
-        this(change, emptySet());
+        this(change, emptySet(), emptyMap());
     }
 
     public EntitySelector(@Nullable EntityOperation change, @NotNull Set<String> changesTo) {
-        this(change, changesTo, emptySet(), emptySet());
+        this(change, changesTo, emptySet(), emptySet(), emptyMap());
+    }
+
+    public EntitySelector(
+            @Nullable EntityOperation change, @NotNull Set<String> changesTo, @NotNull Map<String, Object> metadata) {
+        this(change, changesTo, emptySet(), emptySet(), metadata);
     }
 
     public EntitySelector(
             @Nullable EntityOperation change,
             @NotNull Set<String> changesTo,
             @NotNull Set<String> includeProperties,
-            @NotNull Set<String> excludeProperties) {
+            @NotNull Set<String> excludeProperties,
+            @NotNull Map<String, Object> metadata) {
         this.change = change;
         this.changesTo = Objects.requireNonNull(changesTo);
         this.includeProperties = Objects.requireNonNull(includeProperties);
         this.excludeProperties = Objects.requireNonNull(excludeProperties);
+        this.metadata = metadata;
     }
 
     public @Nullable EntityOperation getChange() {
@@ -74,6 +90,10 @@ public class EntitySelector implements Selector {
 
     public @NotNull Set<String> getExcludeProperties() {
         return excludeProperties;
+    }
+
+    public @NotNull Map<String, Object> getMetadata() {
+        return metadata;
     }
 
     @SuppressWarnings("unchecked")
@@ -232,6 +252,7 @@ public class EntitySelector implements Selector {
         if (change != that.change) return false;
         if (!changesTo.equals(that.changesTo)) return false;
         if (!includeProperties.equals(that.includeProperties)) return false;
+        if (!metadata.equals(that.metadata)) return false;
         return excludeProperties.equals(that.excludeProperties);
     }
 
@@ -241,6 +262,29 @@ public class EntitySelector implements Selector {
         result = 31 * result + changesTo.hashCode();
         result = 31 * result + includeProperties.hashCode();
         result = 31 * result + excludeProperties.hashCode();
+        result = 31 * result + metadata.hashCode();
         return result;
+    }
+
+    @Override
+    public Selector withOperation(EntityOperation operation) {
+        return new EntitySelector(
+                operation, this.changesTo, this.includeProperties, this.excludeProperties, this.metadata);
+    }
+
+    @Override
+    public Selector withChangesTo(Set<String> changesTo) {
+        return new EntitySelector(
+                this.change, changesTo, this.includeProperties, this.excludeProperties, this.metadata);
+    }
+
+    @Override
+    public Selector patchMetadata(Map<String, Object> metadata) {
+        Map<String, Object> newMetadata = new HashMap<>();
+        newMetadata.putAll(this.getMetadata());
+        newMetadata.putAll(metadata);
+
+        return new EntitySelector(
+                this.change, this.changesTo, this.includeProperties, this.excludeProperties, newMetadata);
     }
 }

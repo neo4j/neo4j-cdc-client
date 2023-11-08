@@ -64,7 +64,7 @@ public class RelationshipSelector extends EntitySelector {
             String type,
             RelationshipNodeSelector start,
             RelationshipNodeSelector end) {
-        this(change, changesTo, type, start, end, emptyMap());
+        this(change, changesTo, type, start, end, emptyMap(), emptyMap());
     }
 
     public RelationshipSelector(
@@ -73,8 +73,9 @@ public class RelationshipSelector extends EntitySelector {
             String type,
             RelationshipNodeSelector start,
             RelationshipNodeSelector end,
-            Map<String, Object> key) {
-        this(change, changesTo, type, start, end, key, emptySet(), emptySet());
+            Map<String, Object> key,
+            Map<String, Object> metadata) {
+        this(change, changesTo, type, start, end, key, emptySet(), emptySet(), metadata);
     }
 
     public RelationshipSelector(
@@ -85,8 +86,9 @@ public class RelationshipSelector extends EntitySelector {
             @NotNull RelationshipNodeSelector end,
             @NotNull Map<String, Object> key,
             @NotNull Set<String> includeProperties,
-            @NotNull Set<String> excludeProperties) {
-        super(change, changesTo, includeProperties, excludeProperties);
+            @NotNull Set<String> excludeProperties,
+            @NotNull Map<String, Object> metadata) {
+        super(change, changesTo, includeProperties, excludeProperties, metadata);
 
         this.type = type;
         this.start = Objects.requireNonNull(start);
@@ -189,5 +191,51 @@ public class RelationshipSelector extends EntitySelector {
         result = 31 * result + end.hashCode();
         result = 31 * result + key.hashCode();
         return result;
+    }
+
+    @Override
+    public Selector withOperation(EntityOperation operation) {
+        return new RelationshipSelector(
+                operation,
+                this.getChangesTo(),
+                this.type,
+                this.start,
+                this.end,
+                this.key,
+                this.getIncludeProperties(),
+                this.getExcludeProperties(),
+                this.getMetadata());
+    }
+
+    @Override
+    public Selector withChangesTo(Set<String> changesTo) {
+        return new RelationshipSelector(
+                this.getChange(),
+                changesTo,
+                this.getType(),
+                this.getStart(),
+                this.getEnd(),
+                this.getKey(),
+                this.getIncludeProperties(),
+                this.getExcludeProperties(),
+                this.getMetadata());
+    }
+
+    @Override
+    public Selector patchMetadata(Map<String, Object> metadata) {
+        Map<String, Object> newMetadata = new HashMap<>();
+        newMetadata.putAll(this.getMetadata());
+        newMetadata.putAll(metadata);
+
+        return new RelationshipSelector(
+                this.getChange(),
+                this.getChangesTo(),
+                this.getType(),
+                this.getStart(),
+                this.getEnd(),
+                this.getKey(),
+                this.getIncludeProperties(),
+                this.getExcludeProperties(),
+                newMetadata);
     }
 }
