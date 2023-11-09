@@ -100,6 +100,19 @@ class SelectorTest {
             assertThat(new EntitySelector(null, Set.of("dob")).matches(event)).isTrue();
             assertThat(new EntitySelector(null, Set.of("name", "surname", "dob")).matches(event))
                     .isTrue();
+            assertThat(new EntitySelector(null, Set.of("name"), Map.of("txMetadata.app", "neo4j-browser"))
+                            .matches(event))
+                    .isTrue();
+            assertThat(new EntitySelector(
+                                    null,
+                                    Set.of("name"),
+                                    Map.of(EntitySelector.METADATA_KEY_AUTHENTICATED_USER, "neo4j"))
+                            .matches(event))
+                    .isTrue();
+            assertThat(new EntitySelector(
+                                    null, Set.of("name"), Map.of(EntitySelector.METADATA_KEY_EXECUTING_USER, "neo4j"))
+                            .matches(event))
+                    .isTrue();
             assertThat(new EntitySelector(EntityOperation.CREATE, Set.of("name")).matches(event))
                     .isFalse();
             assertThat(new EntitySelector(null, Set.of("id")).matches(event)).isFalse();
@@ -108,6 +121,19 @@ class SelectorTest {
             assertThat(new EntitySelector(EntityOperation.UPDATE, Set.of("dob")).matches(event))
                     .isTrue();
             assertThat(new EntitySelector(EntityOperation.UPDATE, Set.of("name", "id", "dob")).matches(event))
+                    .isFalse();
+            assertThat(new EntitySelector(null, Set.of("name"), Map.of("txMetadata", Map.of("app", "cypher-shell")))
+                            .matches(event))
+                    .isFalse();
+            assertThat(new EntitySelector(
+                                    null,
+                                    Set.of("name"),
+                                    Map.of(EntitySelector.METADATA_KEY_AUTHENTICATED_USER, "unknown"))
+                            .matches(event))
+                    .isFalse();
+            assertThat(new EntitySelector(
+                                    null, Set.of("name"), Map.of(EntitySelector.METADATA_KEY_EXECUTING_USER, "unknown"))
+                            .matches(event))
                     .isFalse();
         });
     }
@@ -464,7 +490,7 @@ class SelectorTest {
                         "127.0.0.1:7687",
                         ZonedDateTime.now().minusSeconds(5),
                         ZonedDateTime.now(),
-                        emptyMap(),
+                        Map.of("txMetadata.app", "neo4j-browser"),
                         emptyMap()),
                 new NodeEvent(
                         "db:1",
@@ -492,7 +518,7 @@ class SelectorTest {
                         "127.0.0.1:7687",
                         ZonedDateTime.now().minusSeconds(5),
                         ZonedDateTime.now(),
-                        emptyMap(),
+                        Map.of("txMetadata.app", "neo4j-browser"),
                         emptyMap()),
                 new NodeEvent(
                         "db:1",
@@ -522,7 +548,7 @@ class SelectorTest {
                         "127.0.0.1:7687",
                         ZonedDateTime.now().minusSeconds(5),
                         ZonedDateTime.now(),
-                        emptyMap(),
+                        Map.of("txMetadata.app", "neo4j-browser"),
                         emptyMap()),
                 new RelationshipEvent(
                         "db:2",
@@ -551,7 +577,7 @@ class SelectorTest {
                         "127.0.0.1:7687",
                         ZonedDateTime.now().minusSeconds(5),
                         ZonedDateTime.now(),
-                        emptyMap(),
+                        Map.of("txMetadata.app", "neo4j-browser"),
                         emptyMap()),
                 new RelationshipEvent(
                         "db:2",
@@ -580,7 +606,7 @@ class SelectorTest {
                         "127.0.0.1:7687",
                         ZonedDateTime.now().minusSeconds(5),
                         ZonedDateTime.now(),
-                        emptyMap(),
+                        Map.of("txMetadata.app", "neo4j-browser"),
                         emptyMap()),
                 new RelationshipEvent(
                         "db:2",

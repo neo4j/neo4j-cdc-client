@@ -22,7 +22,6 @@ import static java.util.Collections.emptySet;
 import java.util.*;
 import org.jetbrains.annotations.NotNull;
 import org.neo4j.cdc.client.model.ChangeEvent;
-import org.neo4j.cdc.client.model.EntityOperation;
 
 // TODO is this a "real" Selector and needs to implement
 // the Selector interface?
@@ -76,21 +75,6 @@ public class RelationshipNodeSelector implements Selector {
     @Override
     public ChangeEvent applyProperties(ChangeEvent e) {
         throw new UnsupportedOperationException("not supported on relationship node selectors");
-    }
-
-    @Override
-    public Selector withOperation(EntityOperation operation) {
-        return this;
-    }
-
-    @Override
-    public Selector withChangesTo(Set<String> changesTo) {
-        return this;
-    }
-
-    @Override
-    public Selector patchMetadata(Map<String, Object> metadata) {
-        return this;
     }
 
     @Override

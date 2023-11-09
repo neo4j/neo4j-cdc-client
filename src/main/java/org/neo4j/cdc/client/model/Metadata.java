@@ -123,6 +123,10 @@ public class Metadata {
         return additionalEntries;
     }
 
+    public Map<String, Object> getTxMetadata() {
+        return txMetadata;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

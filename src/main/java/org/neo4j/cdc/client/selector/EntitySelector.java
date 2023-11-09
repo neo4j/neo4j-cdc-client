@@ -143,6 +143,21 @@ public class EntitySelector implements Selector {
                     break;
             }
         }
+        if (!metadata.isEmpty()) {
+            Object authenticatedUser = metadata.get(METADATA_KEY_AUTHENTICATED_USER);
+            if (authenticatedUser != null
+                    && !e.getMetadata().getAuthenticatedUser().equals(authenticatedUser)) {
+                return false;
+            }
+            Object executingUser = metadata.get(METADATA_KEY_EXECUTING_USER);
+            if (executingUser != null && !e.getMetadata().getExecutingUser().equals(executingUser)) {
+                return false;
+            }
+            Object txMetadata = metadata.get(METADATA_KEY_TX_METADATA);
+            if (txMetadata != null && !e.getMetadata().getTxMetadata().equals(txMetadata)) {
+                return false;
+            }
+        }
 
         return true;
     }
@@ -238,6 +253,9 @@ public class EntitySelector implements Selector {
         if (!changesTo.isEmpty()) {
             result.put("changesTo", changesTo);
         }
+        if (!metadata.isEmpty()) {
+            result.put("metadata", metadata);
+        }
 
         return result;
     }
@@ -264,27 +282,5 @@ public class EntitySelector implements Selector {
         result = 31 * result + excludeProperties.hashCode();
         result = 31 * result + metadata.hashCode();
         return result;
-    }
-
-    @Override
-    public Selector withOperation(EntityOperation operation) {
-        return new EntitySelector(
-                operation, this.changesTo, this.includeProperties, this.excludeProperties, this.metadata);
-    }
-
-    @Override
-    public Selector withChangesTo(Set<String> changesTo) {
-        return new EntitySelector(
-                this.change, changesTo, this.includeProperties, this.excludeProperties, this.metadata);
-    }
-
-    @Override
-    public Selector patchMetadata(Map<String, Object> metadata) {
-        Map<String, Object> newMetadata = new HashMap<>();
-        newMetadata.putAll(this.getMetadata());
-        newMetadata.putAll(metadata);
-
-        return new EntitySelector(
-                this.change, this.changesTo, this.includeProperties, this.excludeProperties, newMetadata);
     }
 }
