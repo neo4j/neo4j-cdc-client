@@ -64,7 +64,7 @@ public class RelationshipSelector extends EntitySelector {
             String type,
             RelationshipNodeSelector start,
             RelationshipNodeSelector end) {
-        this(change, changesTo, type, start, end, emptyMap());
+        this(change, changesTo, type, start, end, emptyMap(), emptyMap());
     }
 
     public RelationshipSelector(
@@ -73,8 +73,9 @@ public class RelationshipSelector extends EntitySelector {
             String type,
             RelationshipNodeSelector start,
             RelationshipNodeSelector end,
-            Map<String, Object> key) {
-        this(change, changesTo, type, start, end, key, emptySet(), emptySet());
+            Map<String, Object> key,
+            Map<String, Object> metadata) {
+        this(change, changesTo, type, start, end, key, emptySet(), emptySet(), metadata);
     }
 
     public RelationshipSelector(
@@ -85,8 +86,9 @@ public class RelationshipSelector extends EntitySelector {
             @NotNull RelationshipNodeSelector end,
             @NotNull Map<String, Object> key,
             @NotNull Set<String> includeProperties,
-            @NotNull Set<String> excludeProperties) {
-        super(change, changesTo, includeProperties, excludeProperties);
+            @NotNull Set<String> excludeProperties,
+            @NotNull Map<String, Object> metadata) {
+        super(change, changesTo, includeProperties, excludeProperties, metadata);
 
         this.type = type;
         this.start = Objects.requireNonNull(start);

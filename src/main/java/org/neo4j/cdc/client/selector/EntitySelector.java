@@ -16,15 +16,22 @@
  */
 package org.neo4j.cdc.client.selector;
 
+import static java.util.Collections.emptyMap;
 import static java.util.Collections.emptySet;
 
 import java.util.*;
 import java.util.stream.Collectors;
+import org.apache.commons.collections4.MapUtils;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.neo4j.cdc.client.model.*;
 
 public class EntitySelector implements Selector {
+
+    public static final String METADATA_KEY_AUTHENTICATED_USER = "authenticatedUser";
+    public static final String METADATA_KEY_EXECUTING_USER = "executingUser";
+    public static final String METADATA_KEY_TX_METADATA = "txMetadata";
+
     @Nullable
     private final EntityOperation change;
 
@@ -37,27 +44,37 @@ public class EntitySelector implements Selector {
     @NotNull
     private final Set<String> excludeProperties;
 
+    @NotNull
+    private final Map<String, Object> metadata;
+
     public EntitySelector() {
         this(null);
     }
 
     public EntitySelector(@Nullable EntityOperation change) {
-        this(change, emptySet());
+        this(change, emptySet(), emptyMap());
     }
 
     public EntitySelector(@Nullable EntityOperation change, @NotNull Set<String> changesTo) {
-        this(change, changesTo, emptySet(), emptySet());
+        this(change, changesTo, emptySet(), emptySet(), emptyMap());
+    }
+
+    public EntitySelector(
+            @Nullable EntityOperation change, @NotNull Set<String> changesTo, @NotNull Map<String, Object> metadata) {
+        this(change, changesTo, emptySet(), emptySet(), metadata);
     }
 
     public EntitySelector(
             @Nullable EntityOperation change,
             @NotNull Set<String> changesTo,
             @NotNull Set<String> includeProperties,
-            @NotNull Set<String> excludeProperties) {
+            @NotNull Set<String> excludeProperties,
+            @NotNull Map<String, Object> metadata) {
         this.change = change;
         this.changesTo = Objects.requireNonNull(changesTo);
         this.includeProperties = Objects.requireNonNull(includeProperties);
         this.excludeProperties = Objects.requireNonNull(excludeProperties);
+        this.metadata = metadata;
     }
 
     public @Nullable EntityOperation getChange() {
@@ -74,6 +91,10 @@ public class EntitySelector implements Selector {
 
     public @NotNull Set<String> getExcludeProperties() {
         return excludeProperties;
+    }
+
+    public @NotNull Map<String, Object> getMetadata() {
+        return metadata;
     }
 
     @SuppressWarnings("unchecked")
@@ -121,6 +142,32 @@ public class EntitySelector implements Selector {
                     }
 
                     break;
+            }
+        }
+        if (!metadata.isEmpty()) {
+            Object authenticatedUser = metadata.get(METADATA_KEY_AUTHENTICATED_USER);
+            if (authenticatedUser != null
+                    && !e.getMetadata().getAuthenticatedUser().equals(authenticatedUser)) {
+                return false;
+            }
+            Object executingUser = metadata.get(METADATA_KEY_EXECUTING_USER);
+            if (executingUser != null && !e.getMetadata().getExecutingUser().equals(executingUser)) {
+                return false;
+            }
+            var txMetadata = MapUtils.getMap(metadata, METADATA_KEY_TX_METADATA, emptyMap()).entrySet().stream()
+                    .collect(Collectors.toMap(
+                            entry -> {
+                                if (entry.getKey() instanceof String) {
+                                    return (String) entry.getKey();
+                                }
+
+                                throw new IllegalArgumentException(String.format(
+                                        "expected map key to be a String but got '%s'.",
+                                        entry.getKey().getClass().getSimpleName()));
+                            },
+                            entry -> (Object) entry.getValue()));
+            if (!e.getMetadata().getTxMetadata().entrySet().containsAll(txMetadata.entrySet())) {
+                return false;
             }
         }
 
@@ -218,6 +265,15 @@ public class EntitySelector implements Selector {
         if (!changesTo.isEmpty()) {
             result.put("changesTo", changesTo);
         }
+        if (metadata.containsKey(METADATA_KEY_AUTHENTICATED_USER)) {
+            result.put("authenticatedUser", metadata.get(METADATA_KEY_AUTHENTICATED_USER));
+        }
+        if (metadata.containsKey(METADATA_KEY_EXECUTING_USER)) {
+            result.put("executingUser", metadata.get(METADATA_KEY_EXECUTING_USER));
+        }
+        if (metadata.containsKey(METADATA_KEY_TX_METADATA)) {
+            result.put("txMetadata", metadata.get(METADATA_KEY_TX_METADATA));
+        }
 
         return result;
     }
@@ -232,6 +288,7 @@ public class EntitySelector implements Selector {
         if (change != that.change) return false;
         if (!changesTo.equals(that.changesTo)) return false;
         if (!includeProperties.equals(that.includeProperties)) return false;
+        if (!metadata.equals(that.metadata)) return false;
         return excludeProperties.equals(that.excludeProperties);
     }
 
@@ -241,6 +298,7 @@ public class EntitySelector implements Selector {
         result = 31 * result + changesTo.hashCode();
         result = 31 * result + includeProperties.hashCode();
         result = 31 * result + excludeProperties.hashCode();
+        result = 31 * result + metadata.hashCode();
         return result;
     }
 }

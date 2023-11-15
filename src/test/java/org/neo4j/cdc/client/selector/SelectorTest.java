@@ -100,6 +100,19 @@ class SelectorTest {
             assertThat(new EntitySelector(null, Set.of("dob")).matches(event)).isTrue();
             assertThat(new EntitySelector(null, Set.of("name", "surname", "dob")).matches(event))
                     .isTrue();
+            assertThat(new EntitySelector(null, Set.of("name"), Map.of("txMetadata.app", "neo4j-browser"))
+                            .matches(event))
+                    .isTrue();
+            assertThat(new EntitySelector(
+                                    null,
+                                    Set.of("name"),
+                                    Map.of(EntitySelector.METADATA_KEY_AUTHENTICATED_USER, "neo4j"))
+                            .matches(event))
+                    .isTrue();
+            assertThat(new EntitySelector(
+                                    null, Set.of("name"), Map.of(EntitySelector.METADATA_KEY_EXECUTING_USER, "test"))
+                            .matches(event))
+                    .isTrue();
             assertThat(new EntitySelector(EntityOperation.CREATE, Set.of("name")).matches(event))
                     .isFalse();
             assertThat(new EntitySelector(null, Set.of("id")).matches(event)).isFalse();
@@ -108,6 +121,19 @@ class SelectorTest {
             assertThat(new EntitySelector(EntityOperation.UPDATE, Set.of("dob")).matches(event))
                     .isTrue();
             assertThat(new EntitySelector(EntityOperation.UPDATE, Set.of("name", "id", "dob")).matches(event))
+                    .isFalse();
+            assertThat(new EntitySelector(null, Set.of("name"), Map.of("txMetadata", Map.of("app", "cypher-shell")))
+                            .matches(event))
+                    .isFalse();
+            assertThat(new EntitySelector(
+                                    null,
+                                    Set.of("name"),
+                                    Map.of(EntitySelector.METADATA_KEY_AUTHENTICATED_USER, "unknown"))
+                            .matches(event))
+                    .isFalse();
+            assertThat(new EntitySelector(
+                                    null, Set.of("name"), Map.of(EntitySelector.METADATA_KEY_EXECUTING_USER, "unknown"))
+                            .matches(event))
                     .isFalse();
         });
     }
@@ -139,25 +165,43 @@ class SelectorTest {
                 .isTrue();
         assertThat(new NodeSelector(EntityOperation.UPDATE, emptySet(), Set.of("Employee", "Person")).matches(event))
                 .isFalse();
-        assertThat(new NodeSelector(null, emptySet(), emptySet(), Map.of("id", 1L)).matches(event))
+        assertThat(new NodeSelector(null, emptySet(), emptySet(), Map.of("id", 1L), emptyMap()).matches(event))
                 .isTrue();
-        assertThat(new NodeSelector(null, emptySet(), emptySet(), Map.of("id", 1L, "dob", "1990")).matches(event))
-                .isFalse();
-        assertThat(new NodeSelector(null, emptySet(), emptySet(), Map.of("id", 5L, "role", "manager")).matches(event))
-                .isTrue();
-        assertThat(new NodeSelector(null, emptySet(), Set.of("Employee"), Map.of("id", 5L, "role", "manager"))
-                        .matches(event))
-                .isTrue();
-        assertThat(new NodeSelector(null, emptySet(), Set.of("Employee", "Person"), Map.of("id", 5L, "role", "manager"))
-                        .matches(event))
-                .isTrue();
-        assertThat(new NodeSelector(null, emptySet(), Set.of("Person"), Map.of("id", 5L, "role", "manager"))
-                        .matches(event))
-                .isTrue();
-        assertThat(new NodeSelector(null, emptySet(), Set.of("Person", "Manager"), Map.of("id", 5L, "role", "manager"))
+        assertThat(new NodeSelector(null, emptySet(), emptySet(), Map.of("id", 1L, "dob", "1990"), emptyMap())
                         .matches(event))
                 .isFalse();
-        assertThat(new NodeSelector(null, emptySet(), emptySet(), Map.of("id", 5L, "name", "acme corp", "prop", false))
+        assertThat(new NodeSelector(null, emptySet(), emptySet(), Map.of("id", 5L, "role", "manager"), emptyMap())
+                        .matches(event))
+                .isTrue();
+        assertThat(new NodeSelector(
+                                null, emptySet(), Set.of("Employee"), Map.of("id", 5L, "role", "manager"), emptyMap())
+                        .matches(event))
+                .isTrue();
+        assertThat(new NodeSelector(
+                                null,
+                                emptySet(),
+                                Set.of("Employee", "Person"),
+                                Map.of("id", 5L, "role", "manager"),
+                                emptyMap())
+                        .matches(event))
+                .isTrue();
+        assertThat(new NodeSelector(null, emptySet(), Set.of("Person"), Map.of("id", 5L, "role", "manager"), emptyMap())
+                        .matches(event))
+                .isTrue();
+        assertThat(new NodeSelector(
+                                null,
+                                emptySet(),
+                                Set.of("Person", "Manager"),
+                                Map.of("id", 5L, "role", "manager"),
+                                emptyMap())
+                        .matches(event))
+                .isFalse();
+        assertThat(new NodeSelector(
+                                null,
+                                emptySet(),
+                                emptySet(),
+                                Map.of("id", 5L, "name", "acme corp", "prop", false),
+                                emptyMap())
                         .matches(event))
                 .isFalse();
 
@@ -215,7 +259,8 @@ class SelectorTest {
                                 "WORKS_FOR",
                                 new RelationshipNodeSelector(Set.of("Person"), Map.of("id", 1L)),
                                 new RelationshipNodeSelector(Set.of("Company"), Map.of("id", 5L)),
-                                Map.of("year", 1990L))
+                                Map.of("year", 1990L),
+                                emptyMap())
                         .matches(createEvent))
                 .isTrue();
 
@@ -225,7 +270,8 @@ class SelectorTest {
                                 "WORKS_FOR",
                                 new RelationshipNodeSelector(Set.of("Person", "Employee"), Map.of("id", 1L)),
                                 new RelationshipNodeSelector(Set.of("Company"), Map.of("id", 5L)),
-                                Map.of("year", 1990L))
+                                Map.of("year", 1990L),
+                                emptyMap())
                         .matches(createEvent))
                 .isFalse();
         assertThat(new RelationshipSelector(
@@ -234,7 +280,8 @@ class SelectorTest {
                                 "WORKS_FOR",
                                 new RelationshipNodeSelector(Set.of("Person"), Map.of("id", 1L)),
                                 new RelationshipNodeSelector(Set.of("Company", "Corportation"), Map.of("id", 5L)),
-                                Map.of("year", 1990L))
+                                Map.of("year", 1990L),
+                                emptyMap())
                         .matches(createEvent))
                 .isFalse();
         assertThat(new RelationshipSelector(
@@ -243,7 +290,8 @@ class SelectorTest {
                                 "WORKS_FOR",
                                 new RelationshipNodeSelector(Set.of("Person"), Map.of("id", true)),
                                 new RelationshipNodeSelector(Set.of("Company"), Map.of("id", 5L)),
-                                Map.of("year", 1990L))
+                                Map.of("year", 1990L),
+                                emptyMap())
                         .matches(createEvent))
                 .isFalse();
         assertThat(new RelationshipSelector(
@@ -252,7 +300,8 @@ class SelectorTest {
                                 "WORKS_FOR",
                                 new RelationshipNodeSelector(Set.of("Person"), Map.of("id", 1L)),
                                 new RelationshipNodeSelector(Set.of("Company"), Map.of("id", "5")),
-                                Map.of("year", 1990L))
+                                Map.of("year", 1990L),
+                                emptyMap())
                         .matches(createEvent))
                 .isFalse();
         assertThat(new RelationshipSelector(
@@ -261,7 +310,8 @@ class SelectorTest {
                                 "WORKS_FOR",
                                 new RelationshipNodeSelector(Set.of("Person"), Map.of("id", 1L)),
                                 new RelationshipNodeSelector(Set.of("Company"), Map.of("id", "5")),
-                                Map.of("year", "1990"))
+                                Map.of("year", "1990"),
+                                emptyMap())
                         .matches(createEvent))
                 .isFalse();
 
@@ -269,55 +319,179 @@ class SelectorTest {
     }
 
     @Test
+    void metadataSelectorMatches() {
+        List.of(nodeCreateEvent(), nodeUpdateEvent(), nodeDeleteEvent()).forEach(event -> {
+            assertThat(new EntitySelector(
+                                    null, emptySet(), Map.of(EntitySelector.METADATA_KEY_AUTHENTICATED_USER, "neo4j"))
+                            .matches(event))
+                    .isTrue();
+
+            assertThat(new EntitySelector(null, emptySet(), Map.of(EntitySelector.METADATA_KEY_EXECUTING_USER, "test"))
+                            .matches(event))
+                    .isTrue();
+
+            assertThat(new EntitySelector(
+                                    null,
+                                    emptySet(),
+                                    Map.of(
+                                            EntitySelector.METADATA_KEY_AUTHENTICATED_USER,
+                                            "neo4j",
+                                            EntitySelector.METADATA_KEY_EXECUTING_USER,
+                                            "test"))
+                            .matches(event))
+                    .isTrue();
+
+            assertThat(new EntitySelector(
+                                    null,
+                                    emptySet(),
+                                    Map.of(EntitySelector.METADATA_KEY_TX_METADATA, Map.of("app.name", "my-super-app")))
+                            .matches(event))
+                    .isTrue();
+
+            assertThat(new EntitySelector(
+                                    null,
+                                    emptySet(),
+                                    Map.of(
+                                            EntitySelector.METADATA_KEY_TX_METADATA,
+                                            Map.of("app.name", "my-super-app", "app.version", "1.0")))
+                            .matches(event))
+                    .isTrue();
+
+            assertThat(new EntitySelector(
+                                    null,
+                                    emptySet(),
+                                    Map.of(
+                                            EntitySelector.METADATA_KEY_AUTHENTICATED_USER,
+                                            "neo4j",
+                                            EntitySelector.METADATA_KEY_EXECUTING_USER,
+                                            "test",
+                                            EntitySelector.METADATA_KEY_TX_METADATA,
+                                            Map.of("app.name", "my-super-app", "app.version", "1.0")))
+                            .matches(event))
+                    .isTrue();
+
+            assertThat(new EntitySelector(
+                                    null,
+                                    emptySet(),
+                                    Map.of(
+                                            EntitySelector.METADATA_KEY_TX_METADATA,
+                                            Map.of(
+                                                    "app.name",
+                                                    "my-super-app",
+                                                    "app.version",
+                                                    "1.0",
+                                                    "app.user",
+                                                    "unknown")))
+                            .matches(event))
+                    .isFalse();
+
+            assertThat(new EntitySelector(
+                                    null,
+                                    emptySet(),
+                                    Map.of(
+                                            EntitySelector.METADATA_KEY_AUTHENTICATED_USER,
+                                            "neo4j",
+                                            EntitySelector.METADATA_KEY_EXECUTING_USER,
+                                            "test",
+                                            EntitySelector.METADATA_KEY_TX_METADATA,
+                                            Map.of("app.name", "my-super-app", "app.version", "2.0")))
+                            .matches(event))
+                    .isFalse();
+
+            assertThat(new EntitySelector(
+                                    null,
+                                    emptySet(),
+                                    Map.of(
+                                            EntitySelector.METADATA_KEY_AUTHENTICATED_USER,
+                                            "neo4j",
+                                            EntitySelector.METADATA_KEY_EXECUTING_USER,
+                                            "neo4j",
+                                            EntitySelector.METADATA_KEY_TX_METADATA,
+                                            Map.of("app.name", "my-super-app", "app.version", "1.0")))
+                            .matches(event))
+                    .isFalse();
+
+            assertThat(new EntitySelector(
+                                    null,
+                                    emptySet(),
+                                    Map.of(
+                                            EntitySelector.METADATA_KEY_AUTHENTICATED_USER,
+                                            "neo4j",
+                                            EntitySelector.METADATA_KEY_EXECUTING_USER,
+                                            "test",
+                                            EntitySelector.METADATA_KEY_TX_METADATA,
+                                            Map.of(
+                                                    "app.name",
+                                                    "my-super-app",
+                                                    "app.version",
+                                                    "1.0",
+                                                    "app.user",
+                                                    "test",
+                                                    "app.code",
+                                                    "no-code")))
+                            .matches(event))
+                    .isFalse();
+        });
+    }
+
+    @Test
     void applyFiltersShouldArrangeProperties() {
         List.of(nodeCreateEvent(), relationshipCreateEvent()).forEach(event -> {
-            assertThat(new EntitySelector(null, emptySet(), emptySet(), emptySet()).applyProperties(event))
+            assertThat(new EntitySelector(null, emptySet(), emptySet(), emptySet(), emptyMap()).applyProperties(event))
                     .extracting("event.after.properties", InstanceOfAssertFactories.map(String.class, Object.class))
                     .containsOnlyKeys("id", "name", "surname");
-            assertThat(new EntitySelector(null, emptySet(), Set.of("*"), emptySet()).applyProperties(event))
+            assertThat(new EntitySelector(null, emptySet(), Set.of("*"), emptySet(), emptyMap()).applyProperties(event))
                     .extracting("event.after.properties", InstanceOfAssertFactories.map(String.class, Object.class))
                     .containsOnlyKeys("id", "name", "surname");
-            assertThat(new EntitySelector(null, emptySet(), Set.of("id"), emptySet()).applyProperties(event))
+            assertThat(new EntitySelector(null, emptySet(), Set.of("id"), emptySet(), emptyMap())
+                            .applyProperties(event))
                     .extracting("event.after.properties", InstanceOfAssertFactories.map(String.class, Object.class))
                     .containsOnlyKeys("id");
-            assertThat(new EntitySelector(null, emptySet(), Set.of("id", "name"), emptySet()).applyProperties(event))
+            assertThat(new EntitySelector(null, emptySet(), Set.of("id", "name"), emptySet(), emptyMap())
+                            .applyProperties(event))
                     .extracting("event.after.properties", InstanceOfAssertFactories.map(String.class, Object.class))
                     .containsOnlyKeys("id", "name");
-            assertThat(new EntitySelector(null, emptySet(), emptySet(), Set.of("id")).applyProperties(event))
+            assertThat(new EntitySelector(null, emptySet(), emptySet(), Set.of("id"), emptyMap())
+                            .applyProperties(event))
                     .extracting("event.after.properties", InstanceOfAssertFactories.map(String.class, Object.class))
                     .containsOnlyKeys("name", "surname")
                     .doesNotContainKey("id");
-            assertThat(new EntitySelector(null, emptySet(), emptySet(), Set.of("id", "name")).applyProperties(event))
+            assertThat(new EntitySelector(null, emptySet(), emptySet(), Set.of("id", "name"), emptyMap())
+                            .applyProperties(event))
                     .extracting("event.after.properties", InstanceOfAssertFactories.map(String.class, Object.class))
                     .containsOnlyKeys("surname")
                     .doesNotContainKeys("id", "name");
         });
 
         List.of(nodeDeleteEvent(), relationshipDeleteEvent()).forEach(event -> {
-            assertThat(new EntitySelector(null, emptySet(), emptySet(), emptySet()).applyProperties(event))
+            assertThat(new EntitySelector(null, emptySet(), emptySet(), emptySet(), emptyMap()).applyProperties(event))
                     .extracting("event.before.properties", InstanceOfAssertFactories.map(String.class, Object.class))
                     .containsOnlyKeys("id", "name", "surname");
-            assertThat(new EntitySelector(null, emptySet(), Set.of("*"), emptySet()).applyProperties(event))
+            assertThat(new EntitySelector(null, emptySet(), Set.of("*"), emptySet(), emptyMap()).applyProperties(event))
                     .extracting("event.before.properties", InstanceOfAssertFactories.map(String.class, Object.class))
                     .containsOnlyKeys("id", "name", "surname");
-            assertThat(new EntitySelector(null, emptySet(), Set.of("id"), emptySet()).applyProperties(event))
+            assertThat(new EntitySelector(null, emptySet(), Set.of("id"), emptySet(), emptyMap())
+                            .applyProperties(event))
                     .extracting("event.before.properties", InstanceOfAssertFactories.map(String.class, Object.class))
                     .containsOnlyKeys("id");
-            assertThat(new EntitySelector(null, emptySet(), Set.of("id", "name"), emptySet()).applyProperties(event))
+            assertThat(new EntitySelector(null, emptySet(), Set.of("id", "name"), emptySet(), emptyMap())
+                            .applyProperties(event))
                     .extracting("event.before.properties", InstanceOfAssertFactories.map(String.class, Object.class))
                     .containsOnlyKeys("id", "name");
-            assertThat(new EntitySelector(null, emptySet(), emptySet(), Set.of("id")).applyProperties(event))
+            assertThat(new EntitySelector(null, emptySet(), emptySet(), Set.of("id"), emptyMap())
+                            .applyProperties(event))
                     .extracting("event.before.properties", InstanceOfAssertFactories.map(String.class, Object.class))
                     .containsOnlyKeys("name", "surname")
                     .doesNotContainKey("id");
-            assertThat(new EntitySelector(null, emptySet(), emptySet(), Set.of("id", "name")).applyProperties(event))
+            assertThat(new EntitySelector(null, emptySet(), emptySet(), Set.of("id", "name"), emptyMap())
+                            .applyProperties(event))
                     .extracting("event.before.properties", InstanceOfAssertFactories.map(String.class, Object.class))
                     .containsOnlyKeys("surname")
                     .doesNotContainKeys("id", "name");
         });
 
         List.of(nodeUpdateEvent(), relationshipUpdateEvent()).forEach(event -> {
-            assertThat(new EntitySelector(null, emptySet(), emptySet(), emptySet()).applyProperties(event))
+            assertThat(new EntitySelector(null, emptySet(), emptySet(), emptySet(), emptyMap()).applyProperties(event))
                     .satisfies(e -> assertThat(e)
                             .extracting(
                                     "event.before.properties",
@@ -327,7 +501,7 @@ class SelectorTest {
                             .extracting(
                                     "event.after.properties", InstanceOfAssertFactories.map(String.class, Object.class))
                             .containsOnlyKeys("id", "name", "dob"));
-            assertThat(new EntitySelector(null, emptySet(), Set.of("*"), emptySet()).applyProperties(event))
+            assertThat(new EntitySelector(null, emptySet(), Set.of("*"), emptySet(), emptyMap()).applyProperties(event))
                     .satisfies(e -> assertThat(e)
                             .extracting(
                                     "event.before.properties",
@@ -337,7 +511,8 @@ class SelectorTest {
                             .extracting(
                                     "event.after.properties", InstanceOfAssertFactories.map(String.class, Object.class))
                             .containsOnlyKeys("id", "name", "dob"));
-            assertThat(new EntitySelector(null, emptySet(), Set.of("id"), emptySet()).applyProperties(event))
+            assertThat(new EntitySelector(null, emptySet(), Set.of("id"), emptySet(), emptyMap())
+                            .applyProperties(event))
                     .satisfies(e -> assertThat(e)
                             .extracting(
                                     "event.before.properties",
@@ -347,7 +522,8 @@ class SelectorTest {
                             .extracting(
                                     "event.after.properties", InstanceOfAssertFactories.map(String.class, Object.class))
                             .containsOnlyKeys("id"));
-            assertThat(new EntitySelector(null, emptySet(), Set.of("id", "name"), emptySet()).applyProperties(event))
+            assertThat(new EntitySelector(null, emptySet(), Set.of("id", "name"), emptySet(), emptyMap())
+                            .applyProperties(event))
                     .satisfies(e -> assertThat(e)
                             .extracting(
                                     "event.before.properties",
@@ -357,7 +533,8 @@ class SelectorTest {
                             .extracting(
                                     "event.after.properties", InstanceOfAssertFactories.map(String.class, Object.class))
                             .containsOnlyKeys("id", "name"));
-            assertThat(new EntitySelector(null, emptySet(), emptySet(), Set.of("id")).applyProperties(event))
+            assertThat(new EntitySelector(null, emptySet(), emptySet(), Set.of("id"), emptyMap())
+                            .applyProperties(event))
                     .satisfies(e -> assertThat(e)
                             .extracting(
                                     "event.before.properties",
@@ -369,7 +546,8 @@ class SelectorTest {
                                     "event.after.properties", InstanceOfAssertFactories.map(String.class, Object.class))
                             .containsOnlyKeys("name", "dob")
                             .doesNotContainKey("id"));
-            assertThat(new EntitySelector(null, emptySet(), emptySet(), Set.of("id", "name")).applyProperties(event))
+            assertThat(new EntitySelector(null, emptySet(), emptySet(), Set.of("id", "name"), emptyMap())
+                            .applyProperties(event))
                     .satisfies(e -> assertThat(e)
                             .extracting(
                                     "event.before.properties",
@@ -392,7 +570,7 @@ class SelectorTest {
                 0,
                 new Metadata(
                         "neo4j",
-                        "neo4j",
+                        "test",
                         "server-1",
                         CaptureMode.DIFF,
                         "bolt",
@@ -400,6 +578,7 @@ class SelectorTest {
                         "127.0.0.1:7687",
                         ZonedDateTime.now().minusSeconds(5),
                         ZonedDateTime.now(),
+                        Map.of("app.name", "my-super-app", "app.version", "1.0"),
                         emptyMap()),
                 new NodeEvent(
                         "db:1",
@@ -419,7 +598,7 @@ class SelectorTest {
                 0,
                 new Metadata(
                         "neo4j",
-                        "neo4j",
+                        "test",
                         "server-1",
                         CaptureMode.DIFF,
                         "bolt",
@@ -427,6 +606,7 @@ class SelectorTest {
                         "127.0.0.1:7687",
                         ZonedDateTime.now().minusSeconds(5),
                         ZonedDateTime.now(),
+                        Map.of("app.name", "my-super-app", "app.version", "1.0", "app.user", "test"),
                         emptyMap()),
                 new NodeEvent(
                         "db:1",
@@ -446,7 +626,7 @@ class SelectorTest {
                 0,
                 new Metadata(
                         "neo4j",
-                        "neo4j",
+                        "test",
                         "server-1",
                         CaptureMode.DIFF,
                         "bolt",
@@ -454,6 +634,7 @@ class SelectorTest {
                         "127.0.0.1:7687",
                         ZonedDateTime.now().minusSeconds(5),
                         ZonedDateTime.now(),
+                        Map.of("app.name", "my-super-app", "app.version", "1.0", "app.user", "test"),
                         emptyMap()),
                 new NodeEvent(
                         "db:1",
@@ -475,7 +656,7 @@ class SelectorTest {
                 1,
                 new Metadata(
                         "neo4j",
-                        "neo4j",
+                        "test",
                         "server-1",
                         CaptureMode.DIFF,
                         "bolt",
@@ -483,6 +664,7 @@ class SelectorTest {
                         "127.0.0.1:7687",
                         ZonedDateTime.now().minusSeconds(5),
                         ZonedDateTime.now(),
+                        Map.of("app.name", "my-super-app", "app.version", "1.0"),
                         emptyMap()),
                 new RelationshipEvent(
                         "db:2",
@@ -503,7 +685,7 @@ class SelectorTest {
                 1,
                 new Metadata(
                         "neo4j",
-                        "neo4j",
+                        "test",
                         "server-1",
                         CaptureMode.DIFF,
                         "bolt",
@@ -511,6 +693,7 @@ class SelectorTest {
                         "127.0.0.1:7687",
                         ZonedDateTime.now().minusSeconds(5),
                         ZonedDateTime.now(),
+                        Map.of("app.name", "my-super-app", "app.version", "1.0", "app.user", "another"),
                         emptyMap()),
                 new RelationshipEvent(
                         "db:2",
@@ -531,7 +714,7 @@ class SelectorTest {
                 1,
                 new Metadata(
                         "neo4j",
-                        "neo4j",
+                        "test",
                         "server-1",
                         CaptureMode.DIFF,
                         "bolt",
@@ -539,6 +722,7 @@ class SelectorTest {
                         "127.0.0.1:7687",
                         ZonedDateTime.now().minusSeconds(5),
                         ZonedDateTime.now(),
+                        Map.of("app.name", "my-super-app", "app.version", "1.0", "app.user", "another"),
                         emptyMap()),
                 new RelationshipEvent(
                         "db:2",

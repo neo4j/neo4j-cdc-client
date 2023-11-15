@@ -33,6 +33,7 @@ public class Metadata {
     private static final String CONNECTION_SERVER = "connectionServer";
     private static final String TX_START_TIME = "txStartTime";
     private static final String TX_COMMIT_TIME = "txCommitTime";
+    private static final String TX_METADATA = "txMetadata";
     private static final List<String> KNOWN_KEYS = List.of(
             EXECUTING_USER,
             AUTHENTICATED_USER,
@@ -42,7 +43,8 @@ public class Metadata {
             CAPTURE_MODE,
             SERVER_ID,
             TX_COMMIT_TIME,
-            TX_START_TIME);
+            TX_START_TIME,
+            TX_METADATA);
 
     private final String executingUser;
     private final String connectionClient;
@@ -53,6 +55,7 @@ public class Metadata {
     private final String connectionServer;
     private final ZonedDateTime txStartTime;
     private final ZonedDateTime txCommitTime;
+    private final Map<String, Object> txMetadata;
     private final Map<String, Object> additionalEntries;
 
     public Metadata(
@@ -65,6 +68,7 @@ public class Metadata {
             String connectionServer,
             ZonedDateTime txStartTime,
             ZonedDateTime txCommitTime,
+            Map<String, Object> txMetadata,
             Map<String, Object> additionalEntries) {
         this.executingUser = executingUser;
         this.connectionClient = connectionClient;
@@ -75,6 +79,7 @@ public class Metadata {
         this.connectionServer = connectionServer;
         this.txStartTime = Objects.requireNonNull(txStartTime);
         this.txCommitTime = Objects.requireNonNull(txCommitTime);
+        this.txMetadata = txMetadata;
         this.additionalEntries = additionalEntries;
     }
 
@@ -116,6 +121,10 @@ public class Metadata {
 
     public Map<String, Object> getAdditionalEntries() {
         return additionalEntries;
+    }
+
+    public Map<String, Object> getTxMetadata() {
+        return txMetadata;
     }
 
     @Override
@@ -168,6 +177,7 @@ public class Metadata {
                 additionalEntries);
     }
 
+    @SuppressWarnings("unchecked")
     public static Metadata fromMap(Map<?, ?> map) {
         var cypherMap = ModelUtils.checkedMap(Objects.requireNonNull(map), String.class, Object.class);
 
@@ -180,6 +190,7 @@ public class Metadata {
         var connectionServer = MapUtils.getString(cypherMap, CONNECTION_SERVER);
         var txStartTime = ModelUtils.getZonedDateTime(cypherMap, TX_START_TIME);
         var txCommitTime = ModelUtils.getZonedDateTime(cypherMap, TX_COMMIT_TIME);
+        var txMetadata = (Map<String, Object>) MapUtils.getMap(cypherMap, TX_METADATA);
         var unknownEntries = cypherMap.entrySet().stream()
                 .filter(e -> !KNOWN_KEYS.contains(e.getKey()))
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
@@ -194,6 +205,7 @@ public class Metadata {
                 connectionServer,
                 txStartTime,
                 txCommitTime,
+                txMetadata,
                 unknownEntries);
     }
 }

@@ -16,11 +16,14 @@
  */
 package org.neo4j.cdc.client.pattern;
 
-import java.util.Collections;
+import static java.util.Collections.emptySet;
+
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import org.jetbrains.annotations.NotNull;
+import org.neo4j.cdc.client.model.EntityOperation;
 import org.neo4j.cdc.client.selector.NodeSelector;
 import org.neo4j.cdc.client.selector.Selector;
 
@@ -36,6 +39,12 @@ public class NodePattern implements Pattern {
 
     @NotNull
     private final Set<String> excludeProperties;
+
+    private final Map<String, Object> metadata = new HashMap<>();
+
+    private EntityOperation entityOperation;
+
+    private Set<String> changesTo = emptySet();
 
     public NodePattern(
             @NotNull Set<String> labels,
@@ -99,6 +108,21 @@ public class NodePattern implements Pattern {
     @Override
     public Set<Selector> toSelector() {
         return Set.of(new NodeSelector(
-                null, Collections.emptySet(), labels, keyFilters, includeProperties, excludeProperties));
+                entityOperation, changesTo, labels, keyFilters, includeProperties, excludeProperties, metadata));
+    }
+
+    @Override
+    public void withOperation(EntityOperation operation) {
+        this.entityOperation = operation;
+    }
+
+    @Override
+    public void withMetadata(Map<String, Object> metadata) {
+        this.metadata.putAll(metadata);
+    }
+
+    @Override
+    public void withChangesTo(Set<String> changesTo) {
+        this.changesTo = changesTo;
     }
 }

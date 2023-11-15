@@ -23,6 +23,8 @@ import java.util.*;
 import org.jetbrains.annotations.NotNull;
 import org.neo4j.cdc.client.model.ChangeEvent;
 
+// TODO is this a "real" Selector and needs to implement
+// the Selector interface?
 public class RelationshipNodeSelector implements Selector {
     @NotNull
     private final Set<String> labels;
