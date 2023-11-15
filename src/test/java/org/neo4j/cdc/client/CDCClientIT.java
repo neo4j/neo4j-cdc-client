@@ -16,8 +16,7 @@
  */
 package org.neo4j.cdc.client;
 
-import static java.util.Collections.emptyMap;
-import static java.util.Collections.emptySet;
+import static java.util.Collections.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
@@ -29,6 +28,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.neo4j.cdc.client.model.*;
+import org.neo4j.cdc.client.selector.EntitySelector;
 import org.neo4j.cdc.client.selector.NodeSelector;
 import org.neo4j.cdc.client.selector.RelationshipNodeSelector;
 import org.neo4j.cdc.client.selector.RelationshipSelector;
@@ -45,13 +45,12 @@ import reactor.test.StepVerifier;
 @Testcontainers
 public class CDCClientIT {
 
-    private static final String NEO4J_VERSION = "5.11";
+    private static final String NEO4J_VERSION = "5";
 
     @SuppressWarnings("resource")
     @Container
     private static final Neo4jContainer<?> neo4j = new Neo4jContainer<>("neo4j:" + NEO4J_VERSION + "-enterprise")
             .withEnv("NEO4J_ACCEPT_LICENSE_AGREEMENT", "yes")
-            .withNeo4jConfig("internal.dbms.change_data_capture", "true")
             .withAdminPassword("passw0rd");
 
     private static Driver driver;
@@ -725,5 +724,208 @@ public class CDCClientIT {
                                     .containsOnlyKeys("at")))
                     .verifyComplete();
         }
+    }
+
+    @Test
+    void userSelectorsFilterCorrectly() {
+        // prepare
+        try (var session = driver.session()) {
+            session.run(
+                            "CREATE OR REPLACE USER $user SET PLAINTEXT PASSWORD $pwd CHANGE NOT REQUIRED",
+                            Map.of("user", "test", "pwd", "passw0rd"))
+                    .consume();
+            session.run("CREATE OR REPLACE ROLE $role", Map.of("role", "imp")).consume();
+            session.run("GRANT IMPERSONATE ($user) ON DBMS TO $role", Map.of("user", "neo4j", "role", "imp"))
+                    .consume();
+            session.run("GRANT ROLE publisher, imp to $user", Map.of("user", "test"))
+                    .consume();
+        }
+
+        // make changes with test user
+        try (var driver = GraphDatabase.driver(neo4j.getBoltUrl(), AuthTokens.basic("test", "passw0rd"));
+                var session = driver.session();
+                var impersonatedSession = driver.session(
+                        SessionConfig.builder().withImpersonatedUser("neo4j").build())) {
+            session.run("UNWIND range(1, 100) AS n CREATE (:Test {id: n})").consume();
+
+            // also make change with impersonation
+            impersonatedSession
+                    .run("UNWIND range(1, 100) AS n CREATE (:Impersonated {id: n})")
+                    .consume();
+        }
+
+        // make changes with neo4j user
+        try (var session = driver.session()) {
+            session.run("UNWIND range(1, 100) AS n CREATE (:Neo4j {id: n})").consume();
+        }
+
+        // verify authenticatedUser = test
+        StepVerifier.create(new CDCClient(
+                                driver,
+                                new EntitySelector(
+                                        null,
+                                        emptySet(),
+                                        Map.of(EntitySelector.METADATA_KEY_AUTHENTICATED_USER, "test")))
+                        .query(current))
+                .recordWith(ArrayList::new)
+                .thenConsumeWhile(x -> true)
+                .consumeRecordedWith(coll -> assertThat(coll).hasSize(200).allSatisfy(e -> assertThat(e)
+                        .satisfies(c -> assertThat(c.getMetadata().getAuthenticatedUser())
+                                .isEqualTo("test"))
+                        .extracting("event.after.labels", InstanceOfAssertFactories.list(String.class))
+                        .containsAnyOf("Test", "Impersonated")))
+                .verifyComplete();
+
+        // verify authenticatedUser = neo4j
+        StepVerifier.create(new CDCClient(
+                                driver,
+                                new EntitySelector(
+                                        null,
+                                        emptySet(),
+                                        Map.of(EntitySelector.METADATA_KEY_AUTHENTICATED_USER, "neo4j")))
+                        .query(current))
+                .recordWith(ArrayList::new)
+                .thenConsumeWhile(x -> true)
+                .consumeRecordedWith(coll -> assertThat(coll).hasSize(100).allSatisfy(e -> assertThat(e)
+                        .satisfies(c -> assertThat(c.getMetadata().getAuthenticatedUser())
+                                .isEqualTo("neo4j"))
+                        .extracting("event.after.labels", InstanceOfAssertFactories.list(String.class))
+                        .containsAnyOf("Neo4j")))
+                .verifyComplete();
+
+        // verify executingUser = neo4j
+        StepVerifier.create(new CDCClient(
+                                driver,
+                                new EntitySelector(
+                                        null, emptySet(), Map.of(EntitySelector.METADATA_KEY_EXECUTING_USER, "neo4j")))
+                        .query(current))
+                .recordWith(ArrayList::new)
+                .thenConsumeWhile(x -> true)
+                .consumeRecordedWith(coll -> assertThat(coll).hasSize(200).allSatisfy(e -> assertThat(e)
+                        .satisfies(c ->
+                                assertThat(c.getMetadata().getExecutingUser()).isEqualTo("neo4j"))
+                        .extracting("event.after.labels", InstanceOfAssertFactories.list(String.class))
+                        .containsAnyOf("Neo4j", "Impersonated")))
+                .verifyComplete();
+
+        // verify executingUser = test
+        StepVerifier.create(new CDCClient(
+                                driver,
+                                new EntitySelector(
+                                        null, emptySet(), Map.of(EntitySelector.METADATA_KEY_EXECUTING_USER, "test")))
+                        .query(current))
+                .recordWith(ArrayList::new)
+                .thenConsumeWhile(x -> true)
+                .consumeRecordedWith(coll -> assertThat(coll).hasSize(100).allSatisfy(e -> assertThat(e)
+                        .satisfies(c ->
+                                assertThat(c.getMetadata().getExecutingUser()).isEqualTo("test"))
+                        .extracting("event.after.labels", InstanceOfAssertFactories.list(String.class))
+                        .containsAnyOf("Test")))
+                .verifyComplete();
+
+        // verify authenticatedUser = test, executingUser = neo4j
+        StepVerifier.create(new CDCClient(
+                                driver,
+                                new EntitySelector(
+                                        null,
+                                        emptySet(),
+                                        Map.of(
+                                                EntitySelector.METADATA_KEY_AUTHENTICATED_USER,
+                                                "test",
+                                                EntitySelector.METADATA_KEY_EXECUTING_USER,
+                                                "neo4j")))
+                        .query(current))
+                .recordWith(ArrayList::new)
+                .thenConsumeWhile(x -> true)
+                .consumeRecordedWith(coll -> assertThat(coll).hasSize(100).allSatisfy(e -> assertThat(e)
+                        .satisfies(c -> assertThat(c.getMetadata().getAuthenticatedUser())
+                                .isEqualTo("test"))
+                        .satisfies(c ->
+                                assertThat(c.getMetadata().getExecutingUser()).isEqualTo("neo4j"))
+                        .extracting("event.after.labels", InstanceOfAssertFactories.list(String.class))
+                        .containsAnyOf("Impersonated")))
+                .verifyComplete();
+    }
+
+    @Test
+    void txMetadataSelectorFiltersCorrectly() {
+        try (var session = driver.session()) {
+            session.run(
+                            "UNWIND range(1, 100) AS n CREATE (:Test {id: n})",
+                            TransactionConfig.builder()
+                                    .withMetadata(Map.of("app", "Test"))
+                                    .build())
+                    .consume();
+        }
+
+        try (var session = driver.session()) {
+            session.run(
+                            "UNWIND range(1, 100) AS n CREATE (:Other {id: n})",
+                            TransactionConfig.builder()
+                                    .withMetadata(Map.of("app", "Other"))
+                                    .build())
+                    .consume();
+        }
+
+        try (var session = driver.session()) {
+            session.run(
+                            "UNWIND range(1, 100) AS n CREATE (:Another {id: n})",
+                            TransactionConfig.builder()
+                                    .withMetadata(Map.of("app", "Other", "appUser", "test"))
+                                    .build())
+                    .consume();
+        }
+
+        StepVerifier.create(new CDCClient(
+                                driver,
+                                new EntitySelector(
+                                        null,
+                                        emptySet(),
+                                        Map.of(EntitySelector.METADATA_KEY_TX_METADATA, Map.of("app", "Test"))))
+                        .query(current))
+                .recordWith(ArrayList::new)
+                .thenConsumeWhile(x -> true)
+                .consumeRecordedWith(coll -> assertThat(coll).hasSize(100).allSatisfy(e -> assertThat(e)
+                        .satisfies(
+                                c -> assertThat(c.getMetadata().getTxMetadata()).contains(Map.entry("app", "Test")))
+                        .extracting("event.after.labels", InstanceOfAssertFactories.list(String.class))
+                        .containsOnly("Test")))
+                .verifyComplete();
+
+        StepVerifier.create(new CDCClient(
+                                driver,
+                                new EntitySelector(
+                                        null,
+                                        emptySet(),
+                                        Map.of(EntitySelector.METADATA_KEY_TX_METADATA, Map.of("app", "Other"))))
+                        .query(current))
+                .recordWith(ArrayList::new)
+                .thenConsumeWhile(x -> true)
+                .consumeRecordedWith(coll -> assertThat(coll).hasSize(200).allSatisfy(e -> assertThat(e)
+                        .satisfies(
+                                c -> assertThat(c.getMetadata().getTxMetadata()).contains(Map.entry("app", "Other")))
+                        .extracting("event.after.labels", InstanceOfAssertFactories.list(String.class))
+                        .containsAnyOf("Other", "Another")
+                        .doesNotContain("Test")))
+                .verifyComplete();
+
+        StepVerifier.create(new CDCClient(
+                                driver,
+                                new EntitySelector(
+                                        null,
+                                        emptySet(),
+                                        Map.of(
+                                                EntitySelector.METADATA_KEY_TX_METADATA,
+                                                Map.of("app", "Other", "appUser", "test"))))
+                        .query(current))
+                .recordWith(ArrayList::new)
+                .thenConsumeWhile(x -> true)
+                .consumeRecordedWith(coll -> assertThat(coll).hasSize(100).allSatisfy(e -> assertThat(e)
+                        .satisfies(c -> assertThat(c.getMetadata().getTxMetadata())
+                                .contains(Map.entry("app", "Other"), Map.entry("appUser", "test")))
+                        .extracting("event.after.labels", InstanceOfAssertFactories.list(String.class))
+                        .contains("Another")
+                        .doesNotContain("Test", "Other")))
+                .verifyComplete();
     }
 }

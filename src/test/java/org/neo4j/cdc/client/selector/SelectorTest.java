@@ -319,6 +319,122 @@ class SelectorTest {
     }
 
     @Test
+    void metadataSelectorMatches() {
+        List.of(nodeCreateEvent(), nodeUpdateEvent(), nodeDeleteEvent()).forEach(event -> {
+            assertThat(new EntitySelector(
+                                    null, emptySet(), Map.of(EntitySelector.METADATA_KEY_AUTHENTICATED_USER, "neo4j"))
+                            .matches(event))
+                    .isTrue();
+
+            assertThat(new EntitySelector(null, emptySet(), Map.of(EntitySelector.METADATA_KEY_EXECUTING_USER, "test"))
+                            .matches(event))
+                    .isTrue();
+
+            assertThat(new EntitySelector(
+                                    null,
+                                    emptySet(),
+                                    Map.of(
+                                            EntitySelector.METADATA_KEY_AUTHENTICATED_USER,
+                                            "neo4j",
+                                            EntitySelector.METADATA_KEY_EXECUTING_USER,
+                                            "test"))
+                            .matches(event))
+                    .isTrue();
+
+            assertThat(new EntitySelector(
+                                    null,
+                                    emptySet(),
+                                    Map.of(EntitySelector.METADATA_KEY_TX_METADATA, Map.of("app.name", "my-super-app")))
+                            .matches(event))
+                    .isTrue();
+
+            assertThat(new EntitySelector(
+                                    null,
+                                    emptySet(),
+                                    Map.of(
+                                            EntitySelector.METADATA_KEY_TX_METADATA,
+                                            Map.of("app.name", "my-super-app", "app.version", "1.0")))
+                            .matches(event))
+                    .isTrue();
+
+            assertThat(new EntitySelector(
+                                    null,
+                                    emptySet(),
+                                    Map.of(
+                                            EntitySelector.METADATA_KEY_AUTHENTICATED_USER,
+                                            "neo4j",
+                                            EntitySelector.METADATA_KEY_EXECUTING_USER,
+                                            "test",
+                                            EntitySelector.METADATA_KEY_TX_METADATA,
+                                            Map.of("app.name", "my-super-app", "app.version", "1.0")))
+                            .matches(event))
+                    .isTrue();
+
+            assertThat(new EntitySelector(
+                                    null,
+                                    emptySet(),
+                                    Map.of(
+                                            EntitySelector.METADATA_KEY_TX_METADATA,
+                                            Map.of(
+                                                    "app.name",
+                                                    "my-super-app",
+                                                    "app.version",
+                                                    "1.0",
+                                                    "app.user",
+                                                    "unknown")))
+                            .matches(event))
+                    .isFalse();
+
+            assertThat(new EntitySelector(
+                                    null,
+                                    emptySet(),
+                                    Map.of(
+                                            EntitySelector.METADATA_KEY_AUTHENTICATED_USER,
+                                            "neo4j",
+                                            EntitySelector.METADATA_KEY_EXECUTING_USER,
+                                            "test",
+                                            EntitySelector.METADATA_KEY_TX_METADATA,
+                                            Map.of("app.name", "my-super-app", "app.version", "2.0")))
+                            .matches(event))
+                    .isFalse();
+
+            assertThat(new EntitySelector(
+                                    null,
+                                    emptySet(),
+                                    Map.of(
+                                            EntitySelector.METADATA_KEY_AUTHENTICATED_USER,
+                                            "neo4j",
+                                            EntitySelector.METADATA_KEY_EXECUTING_USER,
+                                            "neo4j",
+                                            EntitySelector.METADATA_KEY_TX_METADATA,
+                                            Map.of("app.name", "my-super-app", "app.version", "1.0")))
+                            .matches(event))
+                    .isFalse();
+
+            assertThat(new EntitySelector(
+                                    null,
+                                    emptySet(),
+                                    Map.of(
+                                            EntitySelector.METADATA_KEY_AUTHENTICATED_USER,
+                                            "neo4j",
+                                            EntitySelector.METADATA_KEY_EXECUTING_USER,
+                                            "test",
+                                            EntitySelector.METADATA_KEY_TX_METADATA,
+                                            Map.of(
+                                                    "app.name",
+                                                    "my-super-app",
+                                                    "app.version",
+                                                    "1.0",
+                                                    "app.user",
+                                                    "test",
+                                                    "app.code",
+                                                    "no-code")))
+                            .matches(event))
+                    .isFalse();
+        });
+    }
+
+    @Test
     void applyFiltersShouldArrangeProperties() {
         List.of(nodeCreateEvent(), relationshipCreateEvent()).forEach(event -> {
             assertThat(new EntitySelector(null, emptySet(), emptySet(), emptySet(), emptyMap()).applyProperties(event))
@@ -454,7 +570,7 @@ class SelectorTest {
                 0,
                 new Metadata(
                         "neo4j",
-                        "neo4j",
+                        "test",
                         "server-1",
                         CaptureMode.DIFF,
                         "bolt",
@@ -462,7 +578,7 @@ class SelectorTest {
                         "127.0.0.1:7687",
                         ZonedDateTime.now().minusSeconds(5),
                         ZonedDateTime.now(),
-                        emptyMap(),
+                        Map.of("app.name", "my-super-app", "app.version", "1.0"),
                         emptyMap()),
                 new NodeEvent(
                         "db:1",
@@ -482,7 +598,7 @@ class SelectorTest {
                 0,
                 new Metadata(
                         "neo4j",
-                        "neo4j",
+                        "test",
                         "server-1",
                         CaptureMode.DIFF,
                         "bolt",
@@ -490,7 +606,7 @@ class SelectorTest {
                         "127.0.0.1:7687",
                         ZonedDateTime.now().minusSeconds(5),
                         ZonedDateTime.now(),
-                        Map.of("txMetadata.app", "neo4j-browser"),
+                        Map.of("app.name", "my-super-app", "app.version", "1.0", "app.user", "test"),
                         emptyMap()),
                 new NodeEvent(
                         "db:1",
@@ -510,7 +626,7 @@ class SelectorTest {
                 0,
                 new Metadata(
                         "neo4j",
-                        "neo4j",
+                        "test",
                         "server-1",
                         CaptureMode.DIFF,
                         "bolt",
@@ -518,7 +634,7 @@ class SelectorTest {
                         "127.0.0.1:7687",
                         ZonedDateTime.now().minusSeconds(5),
                         ZonedDateTime.now(),
-                        Map.of("txMetadata.app", "neo4j-browser"),
+                        Map.of("app.name", "my-super-app", "app.version", "1.0", "app.user", "test"),
                         emptyMap()),
                 new NodeEvent(
                         "db:1",
@@ -540,7 +656,7 @@ class SelectorTest {
                 1,
                 new Metadata(
                         "neo4j",
-                        "neo4j",
+                        "test",
                         "server-1",
                         CaptureMode.DIFF,
                         "bolt",
@@ -548,7 +664,7 @@ class SelectorTest {
                         "127.0.0.1:7687",
                         ZonedDateTime.now().minusSeconds(5),
                         ZonedDateTime.now(),
-                        Map.of("txMetadata.app", "neo4j-browser"),
+                        Map.of("app.name", "my-super-app", "app.version", "1.0"),
                         emptyMap()),
                 new RelationshipEvent(
                         "db:2",
@@ -569,7 +685,7 @@ class SelectorTest {
                 1,
                 new Metadata(
                         "neo4j",
-                        "neo4j",
+                        "test",
                         "server-1",
                         CaptureMode.DIFF,
                         "bolt",
@@ -577,7 +693,7 @@ class SelectorTest {
                         "127.0.0.1:7687",
                         ZonedDateTime.now().minusSeconds(5),
                         ZonedDateTime.now(),
-                        Map.of("txMetadata.app", "neo4j-browser"),
+                        Map.of("app.name", "my-super-app", "app.version", "1.0", "app.user", "another"),
                         emptyMap()),
                 new RelationshipEvent(
                         "db:2",
@@ -598,7 +714,7 @@ class SelectorTest {
                 1,
                 new Metadata(
                         "neo4j",
-                        "neo4j",
+                        "test",
                         "server-1",
                         CaptureMode.DIFF,
                         "bolt",
@@ -606,7 +722,7 @@ class SelectorTest {
                         "127.0.0.1:7687",
                         ZonedDateTime.now().minusSeconds(5),
                         ZonedDateTime.now(),
-                        Map.of("txMetadata.app", "neo4j-browser"),
+                        Map.of("app.name", "my-super-app", "app.version", "1.0", "app.user", "another"),
                         emptyMap()),
                 new RelationshipEvent(
                         "db:2",
