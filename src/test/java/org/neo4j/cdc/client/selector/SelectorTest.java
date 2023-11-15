@@ -110,7 +110,7 @@ class SelectorTest {
                             .matches(event))
                     .isTrue();
             assertThat(new EntitySelector(
-                                    null, Set.of("name"), Map.of(EntitySelector.METADATA_KEY_EXECUTING_USER, "neo4j"))
+                                    null, Set.of("name"), Map.of(EntitySelector.METADATA_KEY_EXECUTING_USER, "test"))
                             .matches(event))
                     .isTrue();
             assertThat(new EntitySelector(EntityOperation.CREATE, Set.of("name")).matches(event))
