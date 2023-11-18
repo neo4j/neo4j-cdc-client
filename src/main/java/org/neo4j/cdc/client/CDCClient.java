@@ -164,6 +164,6 @@ public class CDCClient implements CDCService {
                         RxSession::close)
                 .doOnSubscribe(s -> log.trace("subscribed to {}", description))
                 .doOnSuccess(c -> log.trace("subscription to {} completed with '{}'", description, c))
-                .doOnError(t -> log.atError().setCause(t).log("subscription to {} failed", description));
+                .doOnError(t -> log.error("subscription to {} failed", description, t));
     }
 }
