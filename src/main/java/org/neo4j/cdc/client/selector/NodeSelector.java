@@ -105,7 +105,8 @@ public class NodeSelector extends EntitySelector {
             return false;
         }
 
-        if (!key.isEmpty() && !nodeEvent.getKeys().containsValue(key)) {
+        if (!key.isEmpty()
+                && nodeEvent.getKeys().values().stream().flatMap(List::stream).noneMatch(key::equals)) {
             return false;
         }
 

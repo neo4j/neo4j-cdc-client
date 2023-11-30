@@ -19,16 +19,15 @@ package org.neo4j.cdc.client.model;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Collectors;
 import org.apache.commons.collections4.MapUtils;
 
 public class Node {
 
     private final String elementId;
-    private final Map<String, Map<String, Object>> keys;
+    private final Map<String, List<Map<String, Object>>> keys;
     private final List<String> labels;
 
-    public Node(String elementId, List<String> labels, Map<String, Map<String, Object>> keys) {
+    public Node(String elementId, List<String> labels, Map<String, List<Map<String, Object>>> keys) {
         this.elementId = Objects.requireNonNull(elementId);
         this.labels = labels;
         this.keys = keys;
@@ -38,7 +37,7 @@ public class Node {
         return this.elementId;
     }
 
-    public Map<String, Map<String, Object>> getKeys() {
+    public Map<String, List<Map<String, Object>>> getKeys() {
         return this.keys;
     }
 
@@ -76,13 +75,7 @@ public class Node {
 
         var elementId = MapUtils.getString(cypherMap, "elementId");
         var labels = ModelUtils.getList(cypherMap, "labels", String.class);
-        var keysMap = ModelUtils.getMap(cypherMap, "keys", String.class, Map.class);
-        var keys = keysMap != null
-                ? keysMap.entrySet().stream()
-                        .collect(Collectors.toMap(
-                                Map.Entry::getKey,
-                                e -> ModelUtils.checkedMap(e.getValue(), String.class, Object.class)))
-                : null;
+        var keys = ModelUtils.getNodesKeys(cypherMap);
 
         return new Node(elementId, labels, keys);
     }

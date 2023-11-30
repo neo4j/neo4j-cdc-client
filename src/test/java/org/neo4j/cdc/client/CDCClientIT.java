@@ -215,7 +215,8 @@ public class CDCClientIT {
                                     .hasFieldOrPropertyWithValue("elementId", elementId)
                                     .hasFieldOrPropertyWithValue("labels", List.of("Person", "Employee"))
                                     .hasFieldOrPropertyWithValue(
-                                            "keys", Map.of("Person", Map.of("first_name", "john", "last_name", "doe")))
+                                            "keys",
+                                            Map.of("Person", List.of(Map.of("first_name", "john", "last_name", "doe"))))
                                     .hasFieldOrPropertyWithValue("before", null)
                                     .hasFieldOrPropertyWithValue(
                                             "after",
@@ -299,12 +300,15 @@ public class CDCClientIT {
                                             new Node(
                                                     startElementId,
                                                     List.of("Person"),
-                                                    Map.of("Person", Map.of("id", 1L))))
+                                                    Map.of("Person", List.of(Map.of("id", 1L)))))
                                     .hasFieldOrPropertyWithValue(
                                             "end",
                                             new Node(
-                                                    endElementId, List.of("Place"), Map.of("Place", Map.of("id", 48L))))
-                                    .hasFieldOrPropertyWithValue("key", Map.of("on", LocalDate.of(1990, 5, 1)))
+                                                    endElementId,
+                                                    List.of("Place"),
+                                                    Map.of("Place", List.of(Map.of("id", 48L)))))
+                                    .hasFieldOrPropertyWithValue(
+                                            "keys", List.of(Map.of("on", LocalDate.of(1990, 5, 1))))
                                     .hasFieldOrPropertyWithValue("before", null)
                                     .hasFieldOrPropertyWithValue(
                                             "after", new RelationshipState(Map.of("on", LocalDate.of(1990, 5, 1))))))

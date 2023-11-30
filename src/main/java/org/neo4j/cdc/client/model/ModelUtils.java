@@ -20,6 +20,8 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.TemporalAccessor;
 import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.apache.commons.collections4.MapUtils;
 
 class ModelUtils {
@@ -87,5 +89,66 @@ class ModelUtils {
             return ZonedDateTime.from((TemporalAccessor) value);
         }
         return ZonedDateTime.parse(value.toString(), DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSSSSSX"));
+    }
+
+    static Map<String, List<Map<String, Object>>> getNodesKeys(Map<String, Object> cypherMap) {
+        var keysMap = coerseToMap(MapUtils.getObject(cypherMap, "keys"));
+        if (keysMap == null) {
+            return null;
+        }
+        if (keysMap.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        var valueType = keysMap.values().iterator().next().getClass();
+
+        // Check if the key structure is pre Neo4j 5.15
+        if (Map.class.isAssignableFrom(valueType)) {
+            var preNode515keyMap = checkedMap(keysMap, String.class, Map.class);
+            return ModelUtils.transformMapValues(
+                    preNode515keyMap, e -> List.of(ModelUtils.checkedMap(e, String.class, Object.class)));
+        } else {
+            var postNode515KeyMap = checkedMap(keysMap, String.class, List.class);
+            return ModelUtils.transformMapValues(
+                    postNode515KeyMap, e -> coerceToListOfMaps(e, String.class, Object.class));
+        }
+    }
+
+    static Map<?, ?> coerseToMap(Object input) {
+        if (input == null) {
+            return null;
+        }
+        if (!(input instanceof Map)) {
+            throw new IllegalArgumentException(String.format(
+                    "Unexpected type %s, expected Map", input.getClass().getSimpleName()));
+        }
+        return (Map<?, ?>) input;
+    }
+
+    static <K, V> List<Map<K, V>> coerceToListOfMaps(List<?> input, Class<K> keyType, Class<V> valueType) {
+        if (input == null) {
+            return null;
+        }
+        return input.stream()
+                .map(e -> {
+                    if (e != null && !(e instanceof Map)) {
+                        throw new IllegalArgumentException(
+                                "There are elements of unsupported types in the provided list, expected Map");
+                    }
+                    try {
+                        return checkedMap((Map<?, ?>) e, keyType, valueType);
+                    } catch (RuntimeException ex) {
+                        throw new IllegalArgumentException(
+                                "There are elements of unsupported types in the provided list", ex);
+                    }
+                })
+                .collect(Collectors.toList());
+    }
+
+    static <K, V1, V2> Map<K, V2> transformMapValues(Map<K, V1> input, Function<V1, V2> transform) {
+        if (input == null) {
+            return null;
+        }
+        return input.entrySet().stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, e -> transform.apply(e.getValue())));
     }
 }
