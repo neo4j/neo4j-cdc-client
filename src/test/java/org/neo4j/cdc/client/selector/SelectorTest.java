@@ -586,7 +586,7 @@ class SelectorTest {
                         List.of("Person", "Employee"),
                         Map.of(
                                 "Person",
-                                List.of(Map.of("id", 1L)),
+                                List.of(Map.of("id", 1L), Map.of("name", "John")),
                                 "Employee",
                                 List.of(Map.of("id", 5L, "role", "manager"))),
                         null,
@@ -618,7 +618,7 @@ class SelectorTest {
                         List.of("Person", "Employee"),
                         Map.of(
                                 "Person",
-                                List.of(Map.of("id", 1L)),
+                                List.of(Map.of("id", 1L), Map.of("name", "John")),
                                 "Employee",
                                 List.of(Map.of("id", 5L, "role", "manager"))),
                         new NodeState(
@@ -650,7 +650,7 @@ class SelectorTest {
                         List.of("Person", "Employee"),
                         Map.of(
                                 "Person",
-                                List.of(Map.of("id", 1L)),
+                                List.of(Map.of("id", 1L), Map.of("name", "John")),
                                 "Employee",
                                 List.of(Map.of("id", 5L, "role", "manager"))),
                         new NodeState(
@@ -683,7 +683,7 @@ class SelectorTest {
                         "WORKS_FOR",
                         new Node("db:1", List.of("Person"), Map.of("Person", List.of(Map.of("id", 1L)))),
                         new Node("db:2", List.of("Company"), Map.of("Company", List.of(Map.of("id", 5L)))),
-                        List.of(Map.of("year", 1990L)),
+                        List.of(Map.of("year", 1990L), Map.of("name", "John")),
                         EntityOperation.CREATE,
                         null,
                         new RelationshipState(Map.of("id", 1L, "name", "John", "surname", "Doe"))));
@@ -712,7 +712,7 @@ class SelectorTest {
                         "WORKS_FOR",
                         new Node("db:1", List.of("Person"), Map.of("Person", List.of(Map.of("id", 1L)))),
                         new Node("db:2", List.of("Company"), Map.of("Company", List.of(Map.of("id", 5L)))),
-                        List.of(Map.of("year", 1990L)),
+                        List.of(Map.of("year", 1990L), Map.of("name", "John")),
                         EntityOperation.DELETE,
                         new RelationshipState(Map.of("id", 1L, "name", "John", "surname", "Doe")),
                         null));
@@ -741,7 +741,7 @@ class SelectorTest {
                         "WORKS_FOR",
                         new Node("db:1", List.of("Person"), Map.of("Person", List.of(Map.of("id", 1L)))),
                         new Node("db:2", List.of("Company"), Map.of("Company", List.of(Map.of("id", 5L)))),
-                        List.of(Map.of("year", 1990L)),
+                        List.of(Map.of("year", 1990L), Map.of("name", "John")),
                         EntityOperation.UPDATE,
                         new RelationshipState(Map.of("id", 1L, "name", "John", "surname", "Doe")),
                         new RelationshipState(Map.of("id", 1L, "name", "Jack", "dob", LocalDate.of(1990, 1, 1)))));
