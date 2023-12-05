@@ -25,13 +25,11 @@ import org.neo4j.driver.Driver;
 import org.neo4j.driver.GraphDatabase;
 import org.testcontainers.containers.Neo4jContainer;
 import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 /**
  * TODO At the moment of writing Neo4j 5.15 hasn't publicly releases yet. This means that these tests are identical to
  * {@link CDCClient514IT Integration tests for Neo4j 5.14}. When 5.15 is released, we need to enabled these tests.
  */
-@Testcontainers
 @Disabled
 public class CDCClientLatestIT extends CDCClientIT {
 

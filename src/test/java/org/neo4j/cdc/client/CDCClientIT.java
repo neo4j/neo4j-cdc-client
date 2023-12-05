@@ -33,11 +33,13 @@ import org.neo4j.cdc.client.selector.RelationshipSelector;
 import org.neo4j.driver.*;
 import org.neo4j.driver.exceptions.FatalDiscoveryException;
 import org.testcontainers.containers.Neo4jContainer;
+import org.testcontainers.junit.jupiter.Testcontainers;
 import reactor.test.StepVerifier;
 
 /**
  * @author Gerrit Meier
  */
+@Testcontainers
 public abstract class CDCClientIT {
 
     abstract Driver driver();

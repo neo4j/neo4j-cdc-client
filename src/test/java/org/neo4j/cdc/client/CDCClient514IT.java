@@ -25,13 +25,11 @@ import org.neo4j.driver.Driver;
 import org.neo4j.driver.GraphDatabase;
 import org.testcontainers.containers.Neo4jContainer;
 import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 /**
  * Neo4j 5.15+ introduced a breaking change in node ande relationship keys structure. This suite verifies if
  * CLC Client is backward compatible with 5.14 and earlier.
  */
-@Testcontainers
 public class CDCClient514IT extends CDCClientIT {
 
     private static final String NEO4J_VERSION = "5.14";
