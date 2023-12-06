@@ -23,8 +23,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import java.time.*;
 import java.util.*;
 import org.assertj.core.api.InstanceOfAssertFactories;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.neo4j.cdc.client.model.*;
@@ -35,7 +33,6 @@ import org.neo4j.cdc.client.selector.RelationshipSelector;
 import org.neo4j.driver.*;
 import org.neo4j.driver.exceptions.FatalDiscoveryException;
 import org.testcontainers.containers.Neo4jContainer;
-import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import reactor.test.StepVerifier;
 
@@ -43,32 +40,19 @@ import reactor.test.StepVerifier;
  * @author Gerrit Meier
  */
 @Testcontainers
-public class CDCClientIT {
+public abstract class CDCClientIT {
 
-    private static final String NEO4J_VERSION = "5";
+    abstract Driver driver();
 
-    @SuppressWarnings("resource")
-    @Container
-    private static final Neo4jContainer<?> neo4j = new Neo4jContainer<>("neo4j:" + NEO4J_VERSION + "-enterprise")
-            .withEnv("NEO4J_ACCEPT_LICENSE_AGREEMENT", "yes")
-            .withAdminPassword("passw0rd");
+    abstract Neo4jContainer<?> neo4j();
 
-    private static Driver driver;
-    private static ChangeIdentifier current;
+    abstract Map<String, Object> defaultExpectedAdditionalEntries();
 
-    @BeforeAll
-    static void setup() {
-        driver = GraphDatabase.driver(neo4j.getBoltUrl(), AuthTokens.basic("neo4j", "passw0rd"));
-    }
-
-    @AfterAll
-    static void cleanup() {
-        driver.close();
-    }
+    private ChangeIdentifier current;
 
     @BeforeEach
     void reset() {
-        try (var session = driver.session()) {
+        try (var session = driver().session()) {
             session.run(
                             "CREATE OR REPLACE DATABASE $db OPTIONS {txLogEnrichment: $mode} WAIT",
                             Map.of("db", "neo4j", "mode", "FULL"))
@@ -85,7 +69,7 @@ public class CDCClientIT {
 
     @Test
     void earliest() {
-        var client = new CDCClient(driver, Duration.ZERO);
+        var client = new CDCClient(driver(), Duration.ZERO);
 
         StepVerifier.create(client.earliest())
                 .assertNext(cv -> assertNotNull(cv.getId()))
@@ -94,7 +78,7 @@ public class CDCClientIT {
 
     @Test
     void current() {
-        var client = new CDCClient(driver, Duration.ZERO);
+        var client = new CDCClient(driver(), Duration.ZERO);
 
         StepVerifier.create(client.current())
                 .assertNext(cv -> assertNotNull(cv.getId()))
@@ -103,9 +87,9 @@ public class CDCClientIT {
 
     @Test
     void changesCanBeQueried() {
-        var client = new CDCClient(driver, Duration.ZERO);
+        var client = new CDCClient(driver(), Duration.ZERO);
 
-        try (Session session = driver.session()) {
+        try (Session session = driver().session()) {
             session.run("CREATE ()").consume();
         }
 
@@ -117,7 +101,7 @@ public class CDCClientIT {
     @Test
     void respectsSessionConfigSupplier() {
         var client = new CDCClient(
-                driver,
+                driver(),
                 () -> SessionConfig.builder().withDatabase("unknownDatabase").build());
         StepVerifier.create(client.current())
                 .expectError(FatalDiscoveryException.class)
@@ -126,7 +110,7 @@ public class CDCClientIT {
 
     @Test
     void shouldReturnCypherTypesWithoutConversion() {
-        var client = new CDCClient(driver, Duration.ZERO);
+        var client = new CDCClient(driver(), Duration.ZERO);
 
         var props = new HashMap<String, Object>();
         props.put("bool", true);
@@ -143,7 +127,7 @@ public class CDCClientIT {
         props.put("zoned_datetime", ZonedDateTime.of(1990, 5, 1, 23, 59, 59, 0, ZoneId.of("UTC")));
         props.put("zoned_time", OffsetTime.of(23, 59, 59, 0, ZoneOffset.ofHours(1)));
 
-        try (Session session = driver.session()) {
+        try (Session session = driver().session()) {
             session.run("CREATE (a) SET a = $props", Map.of("props", props)).consume();
         }
 
@@ -162,9 +146,9 @@ public class CDCClientIT {
 
     @Test
     void nodeChangesCanBeQueried() {
-        CDCClient client = new CDCClient(driver, Duration.ZERO);
+        CDCClient client = new CDCClient(driver(), Duration.ZERO);
 
-        try (var session = driver.session()) {
+        try (var session = driver().session()) {
             session.run("CREATE CONSTRAINT FOR (p:Person) REQUIRE (p.first_name, p.last_name) IS NODE KEY")
                     .consume();
 
@@ -188,8 +172,8 @@ public class CDCClientIT {
                                 assertThat(c.getSeq()).isNotNull();
                             })
                             .satisfies(e -> assertThat(e.getMetadata())
-                                    .satisfies(m ->
-                                            assertThat(m.getAdditionalEntries()).isEmpty())
+                                    .satisfies(m -> assertThat(m.getAdditionalEntries())
+                                            .isEqualTo(defaultExpectedAdditionalEntries()))
                                     .satisfies(m ->
                                             assertThat(m.getAuthenticatedUser()).isEqualTo("neo4j"))
                                     .satisfies(m ->
@@ -215,7 +199,8 @@ public class CDCClientIT {
                                     .hasFieldOrPropertyWithValue("elementId", elementId)
                                     .hasFieldOrPropertyWithValue("labels", List.of("Person", "Employee"))
                                     .hasFieldOrPropertyWithValue(
-                                            "keys", Map.of("Person", Map.of("first_name", "john", "last_name", "doe")))
+                                            "keys",
+                                            Map.of("Person", List.of(Map.of("first_name", "john", "last_name", "doe"))))
                                     .hasFieldOrPropertyWithValue("before", null)
                                     .hasFieldOrPropertyWithValue(
                                             "after",
@@ -234,9 +219,9 @@ public class CDCClientIT {
 
     @Test
     void relationshipChangesCanBeQueried() {
-        var client = new CDCClient(driver, Duration.ZERO);
+        var client = new CDCClient(driver(), Duration.ZERO);
 
-        try (var session = driver.session()) {
+        try (var session = driver().session()) {
             session.run("CREATE CONSTRAINT FOR (p:Person) REQUIRE (p.id) IS NODE KEY")
                     .consume();
             session.run("CREATE CONSTRAINT FOR (p:Place) REQUIRE (p.id) IS NODE KEY")
@@ -268,8 +253,8 @@ public class CDCClientIT {
                                 assertThat(c.getSeq()).isNotNull();
                             })
                             .satisfies(e -> assertThat(e.getMetadata())
-                                    .satisfies(m ->
-                                            assertThat(m.getAdditionalEntries()).isEmpty())
+                                    .satisfies(m -> assertThat(m.getAdditionalEntries())
+                                            .isEqualTo(defaultExpectedAdditionalEntries()))
                                     .satisfies(m ->
                                             assertThat(m.getAuthenticatedUser()).isEqualTo("neo4j"))
                                     .satisfies(m ->
@@ -299,12 +284,15 @@ public class CDCClientIT {
                                             new Node(
                                                     startElementId,
                                                     List.of("Person"),
-                                                    Map.of("Person", Map.of("id", 1L))))
+                                                    Map.of("Person", List.of(Map.of("id", 1L)))))
                                     .hasFieldOrPropertyWithValue(
                                             "end",
                                             new Node(
-                                                    endElementId, List.of("Place"), Map.of("Place", Map.of("id", 48L))))
-                                    .hasFieldOrPropertyWithValue("key", Map.of("on", LocalDate.of(1990, 5, 1)))
+                                                    endElementId,
+                                                    List.of("Place"),
+                                                    Map.of("Place", List.of(Map.of("id", 48L)))))
+                                    .hasFieldOrPropertyWithValue(
+                                            "keys", List.of(Map.of("on", LocalDate.of(1990, 5, 1))))
                                     .hasFieldOrPropertyWithValue("before", null)
                                     .hasFieldOrPropertyWithValue(
                                             "after", new RelationshipState(Map.of("on", LocalDate.of(1990, 5, 1))))))
@@ -315,7 +303,7 @@ public class CDCClientIT {
     @Test
     void selectorsArePassedToServer() {
 
-        try (var session = driver.session()) {
+        try (var session = driver().session()) {
             session.run("CREATE CONSTRAINT FOR (p:Person) REQUIRE (p.id) IS NODE KEY")
                     .consume();
             session.run("CREATE CONSTRAINT FOR (p:Place) REQUIRE (p.id) IS NODE KEY")
@@ -347,7 +335,7 @@ public class CDCClientIT {
                     .get(0)
                     .asString();
 
-            StepVerifier.create(new CDCClient(driver, Duration.ZERO).query(current))
+            StepVerifier.create(new CDCClient(driver(), Duration.ZERO).query(current))
                     .assertNext(n -> assertThat(n).extracting("event.elementId").isEqualTo(person1))
                     .assertNext(n -> assertThat(n).extracting("event.elementId").isEqualTo(person2))
                     .assertNext(n -> assertThat(n).extracting("event.elementId").isEqualTo(place))
@@ -355,7 +343,7 @@ public class CDCClientIT {
                     .verifyComplete();
 
             StepVerifier.create(new CDCClient(
-                                    driver,
+                                    driver(),
                                     Duration.ZERO,
                                     new NodeSelector(EntityOperation.CREATE, emptySet(), Set.of("Place")))
                             .query(current))
@@ -363,7 +351,7 @@ public class CDCClientIT {
                     .verifyComplete();
 
             StepVerifier.create(new CDCClient(
-                                    driver,
+                                    driver(),
                                     Duration.ZERO,
                                     new NodeSelector(EntityOperation.CREATE, emptySet(), Set.of("Place")),
                                     new NodeSelector(null, emptySet(), Set.of("Person")))
@@ -373,14 +361,14 @@ public class CDCClientIT {
                     .assertNext(n -> assertThat(n).extracting("event.elementId").isEqualTo(place))
                     .verifyComplete();
 
-            StepVerifier.create(
-                            new CDCClient(driver, Duration.ZERO, new RelationshipSelector(null, emptySet(), "BORN_IN"))
-                                    .query(current))
+            StepVerifier.create(new CDCClient(
+                                    driver(), Duration.ZERO, new RelationshipSelector(null, emptySet(), "BORN_IN"))
+                            .query(current))
                     .assertNext(n -> assertThat(n).extracting("event.elementId").isEqualTo(bornIn))
                     .verifyComplete();
 
             StepVerifier.create(new CDCClient(
-                                    driver,
+                                    driver(),
                                     Duration.ZERO,
                                     new NodeSelector(null, emptySet(), Set.of("Place")),
                                     new RelationshipSelector(null, emptySet(), "BORN_IN"))
@@ -394,7 +382,7 @@ public class CDCClientIT {
     @Test
     void selectorsDoFilteringCorrectly() {
 
-        try (var session = driver.session()) {
+        try (var session = driver().session()) {
             session.run("CREATE CONSTRAINT FOR (p:Person) REQUIRE (p.id) IS NODE KEY")
                     .consume();
             session.run("CREATE CONSTRAINT FOR (p:Place) REQUIRE (p.id) IS NODE KEY")
@@ -464,7 +452,7 @@ public class CDCClientIT {
                             Map.of("bornIn", bornIn, "hospital", "state hospital", "doctor", "doctor who"))
                     .consume();
 
-            StepVerifier.create(new CDCClient(driver, Duration.ZERO).query(current))
+            StepVerifier.create(new CDCClient(driver(), Duration.ZERO).query(current))
                     .assertNext(n -> assertThat(n).extracting("event.elementId").isEqualTo(person1))
                     .assertNext(n -> assertThat(n).extracting("event.elementId").isEqualTo(person2))
                     .assertNext(n -> assertThat(n).extracting("event.elementId").isEqualTo(place))
@@ -473,7 +461,7 @@ public class CDCClientIT {
                     .verifyComplete();
 
             StepVerifier.create(new CDCClient(
-                                    driver,
+                                    driver(),
                                     Duration.ZERO,
                                     new NodeSelector(
                                             EntityOperation.CREATE,
@@ -494,7 +482,7 @@ public class CDCClientIT {
                     .verifyComplete();
 
             StepVerifier.create(new CDCClient(
-                                    driver,
+                                    driver(),
                                     Duration.ZERO,
                                     new NodeSelector(
                                             EntityOperation.CREATE,
@@ -515,7 +503,7 @@ public class CDCClientIT {
                     .verifyComplete();
 
             StepVerifier.create(new CDCClient(
-                                    driver,
+                                    driver(),
                                     Duration.ZERO,
                                     new NodeSelector(
                                             EntityOperation.CREATE,
@@ -536,7 +524,7 @@ public class CDCClientIT {
                     .verifyComplete();
 
             StepVerifier.create(new CDCClient(
-                                    driver,
+                                    driver(),
                                     Duration.ZERO,
                                     new NodeSelector(
                                             null,
@@ -580,7 +568,7 @@ public class CDCClientIT {
                     .verifyComplete();
 
             StepVerifier.create(new CDCClient(
-                                    driver,
+                                    driver(),
                                     Duration.ZERO,
                                     new NodeSelector(
                                             null,
@@ -616,7 +604,7 @@ public class CDCClientIT {
                     .verifyComplete();
 
             StepVerifier.create(new CDCClient(
-                                    driver,
+                                    driver(),
                                     Duration.ZERO,
                                     new RelationshipSelector(
                                             null,
@@ -653,7 +641,7 @@ public class CDCClientIT {
                     .verifyComplete();
 
             StepVerifier.create(new CDCClient(
-                                    driver,
+                                    driver(),
                                     Duration.ZERO,
                                     new RelationshipSelector(
                                             null,
@@ -691,7 +679,7 @@ public class CDCClientIT {
 
             // first matching selector wins
             StepVerifier.create(new CDCClient(
-                                    driver,
+                                    driver(),
                                     Duration.ZERO,
                                     new RelationshipSelector(
                                             EntityOperation.CREATE,
@@ -729,7 +717,7 @@ public class CDCClientIT {
     @Test
     void userSelectorsFilterCorrectly() {
         // prepare
-        try (var session = driver.session()) {
+        try (var session = driver().session()) {
             session.run(
                             "CREATE OR REPLACE USER $user SET PLAINTEXT PASSWORD $pwd CHANGE NOT REQUIRED",
                             Map.of("user", "test", "pwd", "passw0rd"))
@@ -742,7 +730,7 @@ public class CDCClientIT {
         }
 
         // make changes with test user
-        try (var driver = GraphDatabase.driver(neo4j.getBoltUrl(), AuthTokens.basic("test", "passw0rd"));
+        try (var driver = GraphDatabase.driver(neo4j().getBoltUrl(), AuthTokens.basic("test", "passw0rd"));
                 var session = driver.session();
                 var impersonatedSession = driver.session(
                         SessionConfig.builder().withImpersonatedUser("neo4j").build())) {
@@ -755,13 +743,13 @@ public class CDCClientIT {
         }
 
         // make changes with neo4j user
-        try (var session = driver.session()) {
+        try (var session = driver().session()) {
             session.run("UNWIND range(1, 100) AS n CREATE (:Neo4j {id: n})").consume();
         }
 
         // verify authenticatedUser = test
         StepVerifier.create(new CDCClient(
-                                driver,
+                                driver(),
                                 new EntitySelector(
                                         null,
                                         emptySet(),
@@ -778,7 +766,7 @@ public class CDCClientIT {
 
         // verify authenticatedUser = neo4j
         StepVerifier.create(new CDCClient(
-                                driver,
+                                driver(),
                                 new EntitySelector(
                                         null,
                                         emptySet(),
@@ -795,7 +783,7 @@ public class CDCClientIT {
 
         // verify executingUser = neo4j
         StepVerifier.create(new CDCClient(
-                                driver,
+                                driver(),
                                 new EntitySelector(
                                         null, emptySet(), Map.of(EntitySelector.METADATA_KEY_EXECUTING_USER, "neo4j")))
                         .query(current))
@@ -810,7 +798,7 @@ public class CDCClientIT {
 
         // verify executingUser = test
         StepVerifier.create(new CDCClient(
-                                driver,
+                                driver(),
                                 new EntitySelector(
                                         null, emptySet(), Map.of(EntitySelector.METADATA_KEY_EXECUTING_USER, "test")))
                         .query(current))
@@ -825,7 +813,7 @@ public class CDCClientIT {
 
         // verify authenticatedUser = test, executingUser = neo4j
         StepVerifier.create(new CDCClient(
-                                driver,
+                                driver(),
                                 new EntitySelector(
                                         null,
                                         emptySet(),
@@ -849,7 +837,7 @@ public class CDCClientIT {
 
     @Test
     void txMetadataSelectorFiltersCorrectly() {
-        try (var session = driver.session()) {
+        try (var session = driver().session()) {
             session.run(
                             "UNWIND range(1, 100) AS n CREATE (:Test {id: n})",
                             TransactionConfig.builder()
@@ -858,7 +846,7 @@ public class CDCClientIT {
                     .consume();
         }
 
-        try (var session = driver.session()) {
+        try (var session = driver().session()) {
             session.run(
                             "UNWIND range(1, 100) AS n CREATE (:Other {id: n})",
                             TransactionConfig.builder()
@@ -867,7 +855,7 @@ public class CDCClientIT {
                     .consume();
         }
 
-        try (var session = driver.session()) {
+        try (var session = driver().session()) {
             session.run(
                             "UNWIND range(1, 100) AS n CREATE (:Another {id: n})",
                             TransactionConfig.builder()
@@ -877,7 +865,7 @@ public class CDCClientIT {
         }
 
         StepVerifier.create(new CDCClient(
-                                driver,
+                                driver(),
                                 new EntitySelector(
                                         null,
                                         emptySet(),
@@ -893,7 +881,7 @@ public class CDCClientIT {
                 .verifyComplete();
 
         StepVerifier.create(new CDCClient(
-                                driver,
+                                driver(),
                                 new EntitySelector(
                                         null,
                                         emptySet(),
@@ -910,7 +898,7 @@ public class CDCClientIT {
                 .verifyComplete();
 
         StepVerifier.create(new CDCClient(
-                                driver,
+                                driver(),
                                 new EntitySelector(
                                         null,
                                         emptySet(),

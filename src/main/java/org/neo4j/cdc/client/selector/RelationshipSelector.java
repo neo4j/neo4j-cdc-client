@@ -130,18 +130,22 @@ public class RelationshipSelector extends EntitySelector {
         if (start.getLabels().stream()
                         .anyMatch(l -> !relationshipEvent.getStart().getLabels().contains(l))
                 || (!start.getKey().isEmpty()
-                        && !relationshipEvent.getStart().getKeys().containsValue(start.getKey()))) {
+                        && relationshipEvent.getStart().getKeys().values().stream()
+                                .flatMap(List::stream)
+                                .noneMatch(start.getKey()::equals))) {
             return false;
         }
 
         if (end.getLabels().stream()
                         .anyMatch(l -> !relationshipEvent.getEnd().getLabels().contains(l))
                 || (!end.getKey().isEmpty()
-                        && !relationshipEvent.getEnd().getKeys().containsValue(end.getKey()))) {
+                        && relationshipEvent.getEnd().getKeys().values().stream()
+                                .flatMap(List::stream)
+                                .noneMatch(end.getKey()::equals))) {
             return false;
         }
 
-        if (!key.isEmpty() && !Objects.equals(key, relationshipEvent.getKey())) {
+        if (!key.isEmpty() && !relationshipEvent.getKeys().contains(key)) {
             return false;
         }
 

@@ -16,6 +16,7 @@
  */
 package org.neo4j.cdc.client.model;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import org.apache.commons.collections4.MapUtils;
@@ -25,14 +26,14 @@ public class RelationshipEvent extends EntityEvent<RelationshipState> {
     private final Node start;
     private final Node end;
     private final String type;
-    private final Map<String, Object> key;
+    private final List<Map<String, Object>> keys;
 
     public RelationshipEvent(
             String elementId,
             String type,
             Node start,
             Node end,
-            Map<String, Object> key,
+            List<Map<String, Object>> keys,
             EntityOperation operation,
             RelationshipState before,
             RelationshipState after) {
@@ -41,7 +42,7 @@ public class RelationshipEvent extends EntityEvent<RelationshipState> {
         this.start = Objects.requireNonNull(start);
         this.end = Objects.requireNonNull(end);
         this.type = Objects.requireNonNull(type);
-        this.key = key;
+        this.keys = keys;
     }
 
     public Node getStart() {
@@ -56,8 +57,8 @@ public class RelationshipEvent extends EntityEvent<RelationshipState> {
         return this.type;
     }
 
-    public Map<String, Object> getKey() {
-        return this.key;
+    public List<Map<String, Object>> getKeys() {
+        return this.keys;
     }
 
     @Override
@@ -71,7 +72,7 @@ public class RelationshipEvent extends EntityEvent<RelationshipState> {
         if (!start.equals(that.start)) return false;
         if (!end.equals(that.end)) return false;
         if (!type.equals(that.type)) return false;
-        return Objects.equals(key, that.key);
+        return Objects.equals(keys, that.keys);
     }
 
     @Override
@@ -80,15 +81,15 @@ public class RelationshipEvent extends EntityEvent<RelationshipState> {
         result = 31 * result + start.hashCode();
         result = 31 * result + end.hashCode();
         result = 31 * result + type.hashCode();
-        result = 31 * result + (key != null ? key.hashCode() : 0);
+        result = 31 * result + (keys != null ? keys.hashCode() : 0);
         return result;
     }
 
     @Override
     public String toString() {
         return String.format(
-                "RelationshipEvent{elementId=%s, start=%s, end=%s, type='%s', key=%s, operation=%s, before=%s, after=%s}",
-                getElementId(), start, end, type, key, getOperation(), getBefore(), getAfter());
+                "RelationshipEvent{elementId=%s, start=%s, end=%s, type='%s', keys=%s, operation=%s, before=%s, after=%s}",
+                getElementId(), start, end, type, keys, getOperation(), getBefore(), getAfter());
     }
 
     public static RelationshipEvent fromMap(Map<?, ?> map) {
@@ -99,7 +100,7 @@ public class RelationshipEvent extends EntityEvent<RelationshipState> {
         var type = MapUtils.getString(cypherMap, "type");
         var start = Node.fromMap(ModelUtils.getMap(cypherMap, "start", String.class, Object.class));
         var end = Node.fromMap(ModelUtils.getMap(cypherMap, "end", String.class, Object.class));
-        var key = ModelUtils.getMap(cypherMap, "key", String.class, Object.class);
+        var key = ModelUtils.getRelationshipKeys(cypherMap);
 
         var state = ModelUtils.checkedMap(
                 Objects.requireNonNull(MapUtils.getMap(cypherMap, "state")), String.class, Object.class);

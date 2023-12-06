@@ -19,19 +19,18 @@ package org.neo4j.cdc.client.model;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Collectors;
 import org.apache.commons.collections4.MapUtils;
 
 public class NodeEvent extends EntityEvent<NodeState> {
 
-    private final Map<String, Map<String, Object>> keys;
+    private final Map<String, List<Map<String, Object>>> keys;
     private final List<String> labels;
 
     public NodeEvent(
             String elementId,
             EntityOperation operation,
             List<String> labels,
-            Map<String, Map<String, Object>> keys,
+            Map<String, List<Map<String, Object>>> keys,
             NodeState before,
             NodeState after) {
         super(elementId, EventType.NODE, operation, before, after);
@@ -44,7 +43,7 @@ public class NodeEvent extends EntityEvent<NodeState> {
         return this.labels;
     }
 
-    public Map<String, Map<String, Object>> getKeys() {
+    public Map<String, List<Map<String, Object>>> getKeys() {
         return this.keys;
     }
 
@@ -81,13 +80,7 @@ public class NodeEvent extends EntityEvent<NodeState> {
         var elementId = MapUtils.getString(cypherMap, "elementId");
         var operation = EntityOperation.fromShorthand(MapUtils.getString(cypherMap, "operation"));
         var labels = ModelUtils.getList(cypherMap, "labels", String.class);
-        var keysMap = ModelUtils.getMap(cypherMap, "keys", String.class, Map.class);
-        var keys = keysMap != null
-                ? keysMap.entrySet().stream()
-                        .collect(Collectors.toMap(
-                                Map.Entry::getKey,
-                                e -> ModelUtils.checkedMap(e.getValue(), String.class, Object.class)))
-                : null;
+        var keys = ModelUtils.getNodesKeys(cypherMap);
 
         var state = ModelUtils.checkedMap(
                 Objects.requireNonNull(MapUtils.getMap(cypherMap, "state")), String.class, Object.class);

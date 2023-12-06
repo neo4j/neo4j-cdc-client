@@ -229,7 +229,7 @@ public class EntitySelector implements Selector {
                                 relationshipEvent.getType(),
                                 relationshipEvent.getStart(),
                                 relationshipEvent.getEnd(),
-                                relationshipEvent.getKey(),
+                                relationshipEvent.getKeys(),
                                 relationshipEvent.getOperation(),
                                 beforeState,
                                 afterState));

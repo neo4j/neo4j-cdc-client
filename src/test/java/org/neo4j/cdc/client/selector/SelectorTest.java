@@ -170,29 +170,29 @@ class SelectorTest {
         assertThat(new NodeSelector(null, emptySet(), emptySet(), Map.of("id", 1L, "dob", "1990"), emptyMap())
                         .matches(event))
                 .isFalse();
-        assertThat(new NodeSelector(null, emptySet(), emptySet(), Map.of("id", 5L, "role", "manager"), emptyMap())
+        assertThat(new NodeSelector(null, emptySet(), emptySet(), Map.of("id", 1L, "role", "manager"), emptyMap())
                         .matches(event))
                 .isTrue();
         assertThat(new NodeSelector(
-                                null, emptySet(), Set.of("Employee"), Map.of("id", 5L, "role", "manager"), emptyMap())
+                                null, emptySet(), Set.of("Employee"), Map.of("id", 1L, "role", "manager"), emptyMap())
                         .matches(event))
                 .isTrue();
         assertThat(new NodeSelector(
                                 null,
                                 emptySet(),
                                 Set.of("Employee", "Person"),
-                                Map.of("id", 5L, "role", "manager"),
+                                Map.of("id", 1L, "role", "manager"),
                                 emptyMap())
                         .matches(event))
                 .isTrue();
-        assertThat(new NodeSelector(null, emptySet(), Set.of("Person"), Map.of("id", 5L, "role", "manager"), emptyMap())
+        assertThat(new NodeSelector(null, emptySet(), Set.of("Person"), Map.of("id", 1L, "role", "manager"), emptyMap())
                         .matches(event))
                 .isTrue();
         assertThat(new NodeSelector(
                                 null,
                                 emptySet(),
                                 Set.of("Person", "Manager"),
-                                Map.of("id", 5L, "role", "manager"),
+                                Map.of("id", 1L, "role", "manager"),
                                 emptyMap())
                         .matches(event))
                 .isFalse();
@@ -200,7 +200,7 @@ class SelectorTest {
                                 null,
                                 emptySet(),
                                 emptySet(),
-                                Map.of("id", 5L, "name", "acme corp", "prop", false),
+                                Map.of("id", 1L, "name", "acme corp", "prop", false),
                                 emptyMap())
                         .matches(event))
                 .isFalse();
@@ -584,7 +584,11 @@ class SelectorTest {
                         "db:1",
                         EntityOperation.CREATE,
                         List.of("Person", "Employee"),
-                        Map.of("Person", Map.of("id", 1L), "Employee", Map.of("id", 5L, "role", "manager")),
+                        Map.of(
+                                "Person",
+                                List.of(Map.of("id", 1L), Map.of("name", "John")),
+                                "Employee",
+                                List.of(Map.of("id", 1L, "role", "manager"))),
                         null,
                         new NodeState(
                                 List.of("Person", "Employee"), Map.of("id", 1L, "name", "John", "surname", "Doe"))));
@@ -612,7 +616,11 @@ class SelectorTest {
                         "db:1",
                         EntityOperation.DELETE,
                         List.of("Person", "Employee"),
-                        Map.of("Person", Map.of("id", 1L), "Employee", Map.of("id", 5L, "role", "manager")),
+                        Map.of(
+                                "Person",
+                                List.of(Map.of("id", 1L), Map.of("name", "John")),
+                                "Employee",
+                                List.of(Map.of("id", 1L, "role", "manager"))),
                         new NodeState(
                                 List.of("Person", "Employee"), Map.of("id", 1L, "name", "John", "surname", "Doe")),
                         null));
@@ -640,7 +648,11 @@ class SelectorTest {
                         "db:1",
                         EntityOperation.UPDATE,
                         List.of("Person", "Employee"),
-                        Map.of("Person", Map.of("id", 1L), "Employee", Map.of("id", 5L, "role", "manager")),
+                        Map.of(
+                                "Person",
+                                List.of(Map.of("id", 1L), Map.of("name", "John")),
+                                "Employee",
+                                List.of(Map.of("id", 1L, "role", "manager"))),
                         new NodeState(
                                 List.of("Person", "Employee"), Map.of("id", 1L, "name", "John", "surname", "Doe")),
                         new NodeState(
@@ -669,9 +681,9 @@ class SelectorTest {
                 new RelationshipEvent(
                         "db:2",
                         "WORKS_FOR",
-                        new Node("db:1", List.of("Person"), Map.of("Person", Map.of("id", 1L))),
-                        new Node("db:2", List.of("Company"), Map.of("Company", Map.of("id", 5L))),
-                        Map.of("year", 1990L),
+                        new Node("db:1", List.of("Person"), Map.of("Person", List.of(Map.of("id", 1L)))),
+                        new Node("db:2", List.of("Company"), Map.of("Company", List.of(Map.of("id", 5L)))),
+                        List.of(Map.of("year", 1990L), Map.of("name", "John")),
                         EntityOperation.CREATE,
                         null,
                         new RelationshipState(Map.of("id", 1L, "name", "John", "surname", "Doe"))));
@@ -698,9 +710,9 @@ class SelectorTest {
                 new RelationshipEvent(
                         "db:2",
                         "WORKS_FOR",
-                        new Node("db:1", List.of("Person"), Map.of("Person", Map.of("id", 1L))),
-                        new Node("db:2", List.of("Company"), Map.of("Company", Map.of("id", 5L))),
-                        Map.of("year", 1990L),
+                        new Node("db:1", List.of("Person"), Map.of("Person", List.of(Map.of("id", 1L)))),
+                        new Node("db:2", List.of("Company"), Map.of("Company", List.of(Map.of("id", 5L)))),
+                        List.of(Map.of("year", 1990L), Map.of("name", "John")),
                         EntityOperation.DELETE,
                         new RelationshipState(Map.of("id", 1L, "name", "John", "surname", "Doe")),
                         null));
@@ -727,9 +739,9 @@ class SelectorTest {
                 new RelationshipEvent(
                         "db:2",
                         "WORKS_FOR",
-                        new Node("db:1", List.of("Person"), Map.of("Person", Map.of("id", 1L))),
-                        new Node("db:2", List.of("Company"), Map.of("Company", Map.of("id", 5L))),
-                        Map.of("year", 1990L),
+                        new Node("db:1", List.of("Person"), Map.of("Person", List.of(Map.of("id", 1L)))),
+                        new Node("db:2", List.of("Company"), Map.of("Company", List.of(Map.of("id", 5L)))),
+                        List.of(Map.of("year", 1990L), Map.of("name", "John")),
                         EntityOperation.UPDATE,
                         new RelationshipState(Map.of("id", 1L, "name", "John", "surname", "Doe")),
                         new RelationshipState(Map.of("id", 1L, "name", "Jack", "dob", LocalDate.of(1990, 1, 1)))));
