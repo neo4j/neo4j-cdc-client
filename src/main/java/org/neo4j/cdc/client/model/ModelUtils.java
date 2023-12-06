@@ -151,4 +151,18 @@ class ModelUtils {
         return input.entrySet().stream()
                 .collect(Collectors.toMap(Map.Entry::getKey, e -> transform.apply(e.getValue())));
     }
+
+    static List<Map<String, Object>> getRelationshipKeys(Map<String, Object> cypherMap) {
+        var keysList = ModelUtils.getList(cypherMap, "keys", Map.class);
+        if (keysList != null) {
+            return ModelUtils.coerceToListOfMaps(keysList, String.class, Object.class);
+        }
+
+        // Check if the key structure is pre Neo4j 5.15
+        var keyMap = ModelUtils.getMap(cypherMap, "key", String.class, Object.class);
+        if (keyMap == null) {
+            return null;
+        }
+        return List.of(keyMap);
+    }
 }

@@ -100,7 +100,7 @@ public class RelationshipEvent extends EntityEvent<RelationshipState> {
         var type = MapUtils.getString(cypherMap, "type");
         var start = Node.fromMap(ModelUtils.getMap(cypherMap, "start", String.class, Object.class));
         var end = Node.fromMap(ModelUtils.getMap(cypherMap, "end", String.class, Object.class));
-        var key = getKeys(cypherMap);
+        var key = ModelUtils.getRelationshipKeys(cypherMap);
 
         var state = ModelUtils.checkedMap(
                 Objects.requireNonNull(MapUtils.getMap(cypherMap, "state")), String.class, Object.class);
@@ -108,19 +108,5 @@ public class RelationshipEvent extends EntityEvent<RelationshipState> {
         var after = RelationshipState.fromMap(MapUtils.getMap(state, "after"));
 
         return new RelationshipEvent(elementId, type, start, end, key, operation, before, after);
-    }
-
-    private static List<Map<String, Object>> getKeys(Map<String, Object> cypherMap) {
-        var keysList = ModelUtils.getList(cypherMap, "keys", Map.class);
-        if (keysList != null) {
-            return ModelUtils.coerceToListOfMaps(keysList, String.class, Object.class);
-        }
-
-        // Check if the key structure is pre Neo4j 5.15
-        var keyMap = ModelUtils.getMap(cypherMap, "key", String.class, Object.class);
-        if (keyMap == null) {
-            return null;
-        }
-        return List.of(keyMap);
     }
 }

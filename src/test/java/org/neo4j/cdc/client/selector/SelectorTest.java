@@ -170,29 +170,29 @@ class SelectorTest {
         assertThat(new NodeSelector(null, emptySet(), emptySet(), Map.of("id", 1L, "dob", "1990"), emptyMap())
                         .matches(event))
                 .isFalse();
-        assertThat(new NodeSelector(null, emptySet(), emptySet(), Map.of("id", 5L, "role", "manager"), emptyMap())
+        assertThat(new NodeSelector(null, emptySet(), emptySet(), Map.of("id", 1L, "role", "manager"), emptyMap())
                         .matches(event))
                 .isTrue();
         assertThat(new NodeSelector(
-                                null, emptySet(), Set.of("Employee"), Map.of("id", 5L, "role", "manager"), emptyMap())
+                                null, emptySet(), Set.of("Employee"), Map.of("id", 1L, "role", "manager"), emptyMap())
                         .matches(event))
                 .isTrue();
         assertThat(new NodeSelector(
                                 null,
                                 emptySet(),
                                 Set.of("Employee", "Person"),
-                                Map.of("id", 5L, "role", "manager"),
+                                Map.of("id", 1L, "role", "manager"),
                                 emptyMap())
                         .matches(event))
                 .isTrue();
-        assertThat(new NodeSelector(null, emptySet(), Set.of("Person"), Map.of("id", 5L, "role", "manager"), emptyMap())
+        assertThat(new NodeSelector(null, emptySet(), Set.of("Person"), Map.of("id", 1L, "role", "manager"), emptyMap())
                         .matches(event))
                 .isTrue();
         assertThat(new NodeSelector(
                                 null,
                                 emptySet(),
                                 Set.of("Person", "Manager"),
-                                Map.of("id", 5L, "role", "manager"),
+                                Map.of("id", 1L, "role", "manager"),
                                 emptyMap())
                         .matches(event))
                 .isFalse();
@@ -200,7 +200,7 @@ class SelectorTest {
                                 null,
                                 emptySet(),
                                 emptySet(),
-                                Map.of("id", 5L, "name", "acme corp", "prop", false),
+                                Map.of("id", 1L, "name", "acme corp", "prop", false),
                                 emptyMap())
                         .matches(event))
                 .isFalse();
@@ -588,7 +588,7 @@ class SelectorTest {
                                 "Person",
                                 List.of(Map.of("id", 1L), Map.of("name", "John")),
                                 "Employee",
-                                List.of(Map.of("id", 5L, "role", "manager"))),
+                                List.of(Map.of("id", 1L, "role", "manager"))),
                         null,
                         new NodeState(
                                 List.of("Person", "Employee"), Map.of("id", 1L, "name", "John", "surname", "Doe"))));
@@ -620,7 +620,7 @@ class SelectorTest {
                                 "Person",
                                 List.of(Map.of("id", 1L), Map.of("name", "John")),
                                 "Employee",
-                                List.of(Map.of("id", 5L, "role", "manager"))),
+                                List.of(Map.of("id", 1L, "role", "manager"))),
                         new NodeState(
                                 List.of("Person", "Employee"), Map.of("id", 1L, "name", "John", "surname", "Doe")),
                         null));
@@ -652,7 +652,7 @@ class SelectorTest {
                                 "Person",
                                 List.of(Map.of("id", 1L), Map.of("name", "John")),
                                 "Employee",
-                                List.of(Map.of("id", 5L, "role", "manager"))),
+                                List.of(Map.of("id", 1L, "role", "manager"))),
                         new NodeState(
                                 List.of("Person", "Employee"), Map.of("id", 1L, "name", "John", "surname", "Doe")),
                         new NodeState(

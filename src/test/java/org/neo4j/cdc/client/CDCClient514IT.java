@@ -28,7 +28,7 @@ import org.testcontainers.junit.jupiter.Container;
 
 /**
  * Neo4j 5.15+ introduced a breaking change in node ande relationship keys structure. This suite verifies if
- * CLC Client is backward compatible with 5.14 and earlier.
+ * CDC Client is backward compatible with 5.14 and earlier.
  */
 public class CDCClient514IT extends CDCClientIT {
 
