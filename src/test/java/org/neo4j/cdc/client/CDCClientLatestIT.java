@@ -19,18 +19,12 @@ package org.neo4j.cdc.client;
 import java.util.Map;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Disabled;
 import org.neo4j.driver.AuthTokens;
 import org.neo4j.driver.Driver;
 import org.neo4j.driver.GraphDatabase;
 import org.testcontainers.containers.Neo4jContainer;
 import org.testcontainers.junit.jupiter.Container;
 
-/**
- * TODO At the moment of writing Neo4j 5.15 hasn't publicly releases yet. This means that these tests are identical to
- * {@link CDCClient514IT Integration tests for Neo4j 5.14}. When 5.15 is released, we need to enabled these tests.
- */
-@Disabled
 public class CDCClientLatestIT extends CDCClientIT {
 
     private static final String NEO4J_VERSION = "5";
