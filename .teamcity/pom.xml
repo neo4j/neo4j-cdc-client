@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <project>
     <modelVersion>4.0.0</modelVersion>
-    <name>BuildResources Config DSL Script</name>
-    <groupId>BuildResources</groupId>
+    <name>CDC Client Config DSL Script</name>
+    <groupId>org.neo4j.connectors.cdc</groupId>
     <artifactId>teamcity-pipeline</artifactId>
     <version>1.0-SNAPSHOT</version>
 

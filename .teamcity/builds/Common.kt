@@ -63,8 +63,8 @@ fun collectArtifacts(buildType: BuildType): BuildType {
 }
 
 fun BuildSteps.runMaven(
-  javaVersion: String = JAVA_VERSION,
-  init: MavenBuildStep.() -> Unit
+    javaVersion: String = JAVA_VERSION,
+    init: MavenBuildStep.() -> Unit
 ): MavenBuildStep {
   val maven =
       this.maven {
@@ -86,10 +86,10 @@ fun BuildSteps.setVersion(name: String, version: String): MavenBuildStep {
 }
 
 fun BuildSteps.commitAndPush(
-  name: String,
-  commitMessage: String,
-  includeFiles: String = "\\*pom.xml",
-  dryRunParameter: String = "dry-run"
+    name: String,
+    commitMessage: String,
+    includeFiles: String = "\\*pom.xml",
+    dryRunParameter: String = "dry-run"
 ): ScriptBuildStep {
   return this.script {
     this.name = name
@@ -108,8 +108,8 @@ fun BuildSteps.commitAndPush(
 }
 
 fun BuildSteps.publishToMavenCentral(
-  name: String,
-  dryRunParameter: String = "dry-run"
+    name: String,
+    dryRunParameter: String = "dry-run"
 ): ScriptBuildStep {
   return this.script {
     this.name = name

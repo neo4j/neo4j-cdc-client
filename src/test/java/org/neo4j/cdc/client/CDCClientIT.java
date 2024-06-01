@@ -1,6 +1,6 @@
 /*
  * Copyright (c) "Neo4j"
- * Neo4j Sweden AB [http://neo4j.com]
+ * Neo4j Sweden AB [https://neo4j.com]
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -52,12 +52,14 @@ public abstract class CDCClientIT {
 
     @BeforeEach
     void reset() {
-        try (var session = driver().session()) {
+        try (var session = driver().session(SessionConfig.forDatabase("system"))) {
             session.run(
                             "CREATE OR REPLACE DATABASE $db OPTIONS {txLogEnrichment: $mode} WAIT",
                             Map.of("db", "neo4j", "mode", "FULL"))
                     .consume();
+        }
 
+        try (var session = driver().session()) {
             current = currentChangeId(session);
         }
     }
