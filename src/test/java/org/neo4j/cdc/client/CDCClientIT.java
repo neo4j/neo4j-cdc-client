@@ -512,7 +512,6 @@ public abstract class CDCClientIT {
 
             StepVerifier.create(new CDCClient(
                                     driver(),
-                                    () -> SessionConfig.forDatabase("my_db"),
                                     Duration.ZERO,
                                     NodeSelector.builder()
                                             .withOperation(EntityOperation.CREATE)
