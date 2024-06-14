@@ -21,6 +21,9 @@ import java.util.Map;
 import java.util.Objects;
 import org.apache.commons.collections4.MapUtils;
 
+/**
+ * Describes the state of a node before or after a change.
+ */
 public class NodeState extends State {
     private final List<String> labels;
 
@@ -30,6 +33,12 @@ public class NodeState extends State {
         this.labels = labels;
     }
 
+    /**
+     * List of labels.
+     * When on DIFF CDC mode, it is limited to the labels that have changed.
+     *
+     * @return list of labels
+     */
     public List<String> getLabels() {
         return labels;
     }

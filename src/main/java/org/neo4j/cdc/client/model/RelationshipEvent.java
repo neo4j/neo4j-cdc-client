@@ -21,6 +21,9 @@ import java.util.Map;
 import java.util.Objects;
 import org.apache.commons.collections4.MapUtils;
 
+/**
+ * Describes a change event related to a relationship.
+ */
 public class RelationshipEvent extends EntityEvent<RelationshipState> {
 
     private final Node start;
@@ -45,18 +48,39 @@ public class RelationshipEvent extends EntityEvent<RelationshipState> {
         this.keys = keys;
     }
 
+    /**
+     * Start node of the relationship.
+     *
+     * @return start node
+     */
     public Node getStart() {
         return this.start;
     }
 
+    /**
+     * End node of the relationship.
+     *
+     * @return end node
+     */
     public Node getEnd() {
         return this.end;
     }
 
+    /**
+     * Type of the relationship.
+     *
+     * @return relationship type
+     */
     public String getType() {
         return this.type;
     }
 
+    /**
+     * 	The keys identifying the changed entity.
+     * 	This requires key constraints defined on the changed relationships.
+     *
+     * @return list of key properties
+     */
     public List<Map<String, Object>> getKeys() {
         return this.keys;
     }

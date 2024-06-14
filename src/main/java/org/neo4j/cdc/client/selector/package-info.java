@@ -14,29 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.neo4j.cdc.client.pattern;
-
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import org.neo4j.cdc.client.model.EntityOperation;
-import org.neo4j.cdc.client.selector.Selector;
-
-public interface Pattern {
-
-    Set<Selector> toSelector();
-
-    void withOperation(EntityOperation operation);
-
-    void withExecutingUser(String user);
-
-    void withAuthenticatedUser(String user);
-
-    void withTxMetadata(Map<String, Object> metadata);
-
-    void withChangesTo(Set<String> changesTo);
-
-    static List<Pattern> parse(String expression) {
-        return Visitors.parse(expression);
-    }
-}
+/**
+ * Package defining selectors.
+ */
+package org.neo4j.cdc.client.selector;

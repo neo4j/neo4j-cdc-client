@@ -18,9 +18,21 @@ package org.neo4j.cdc.client.model;
 
 import java.util.Objects;
 
+/**
+ * Type of operation performed on an entity.
+ */
 public enum EntityOperation {
+    /**
+     * Entity is created.
+     */
     CREATE("c"),
+    /**
+     * Entity is updated.
+     */
     UPDATE("u"),
+    /**
+     * Entity is deleted.
+     */
     DELETE("d");
 
     public final String shorthand;

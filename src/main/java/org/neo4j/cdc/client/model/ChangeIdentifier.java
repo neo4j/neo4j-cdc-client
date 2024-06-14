@@ -19,6 +19,9 @@ package org.neo4j.cdc.client.model;
 import java.util.Objects;
 import org.jetbrains.annotations.NotNull;
 
+/**
+ * Change identifier that identifies a change record.
+ */
 public class ChangeIdentifier {
     private final String id;
 
@@ -26,6 +29,11 @@ public class ChangeIdentifier {
         this.id = Objects.requireNonNull(id);
     }
 
+    /**
+     * Identifier as a string value.
+     *
+     * @return identifier
+     */
     public String getId() {
         return this.id;
     }
