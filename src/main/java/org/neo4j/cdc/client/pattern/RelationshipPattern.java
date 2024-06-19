@@ -47,7 +47,11 @@ public class RelationshipPattern implements Pattern {
     @NotNull
     private final Set<String> excludeProperties;
 
-    private final Map<String, Object> metadata = new HashMap<>();
+    private String executingUser;
+
+    private String authenticatedUser;
+
+    private Map<String, Object> txMetadata;
 
     private EntityOperation entityOperation;
 
@@ -143,28 +147,46 @@ public class RelationshipPattern implements Pattern {
     public Set<Selector> toSelector() {
         var result = new HashSet<Selector>();
 
-        result.add(new RelationshipSelector(
-                entityOperation,
-                changesTo,
-                type,
-                new RelationshipNodeSelector(start.getLabels(), start.getKeyFilters()),
-                new RelationshipNodeSelector(end.getLabels(), end.getKeyFilters()),
-                keyFilters,
-                includeProperties,
-                excludeProperties,
-                metadata));
+        result.add(RelationshipSelector.builder()
+                .withOperation(entityOperation)
+                .withChangesTo(changesTo)
+                .withType(type)
+                .withStart(RelationshipNodeSelector.builder()
+                        .withLabels(start.getLabels())
+                        .withKey(start.getKeyFilters())
+                        .build())
+                .withEnd(RelationshipNodeSelector.builder()
+                        .withLabels(end.getLabels())
+                        .withKey(end.getKeyFilters())
+                        .build())
+                .withKey(keyFilters)
+                .withExecutingUser(executingUser)
+                .withAuthenticatedUser(authenticatedUser)
+                .withTxMetadata(txMetadata)
+                .includingProperties(includeProperties)
+                .excludingProperties(excludeProperties)
+                .build());
 
         if (bidirectional) {
-            result.add(new RelationshipSelector(
-                    entityOperation,
-                    changesTo,
-                    type,
-                    new RelationshipNodeSelector(end.getLabels(), end.getKeyFilters()),
-                    new RelationshipNodeSelector(start.getLabels(), start.getKeyFilters()),
-                    keyFilters,
-                    includeProperties,
-                    excludeProperties,
-                    metadata));
+            result.add(RelationshipSelector.builder()
+                    .withOperation(entityOperation)
+                    .withChangesTo(changesTo)
+                    .withType(type)
+                    .withStart(RelationshipNodeSelector.builder()
+                            .withLabels(end.getLabels())
+                            .withKey(end.getKeyFilters())
+                            .build())
+                    .withEnd(RelationshipNodeSelector.builder()
+                            .withLabels(start.getLabels())
+                            .withKey(start.getKeyFilters())
+                            .build())
+                    .withKey(keyFilters)
+                    .withExecutingUser(executingUser)
+                    .withAuthenticatedUser(authenticatedUser)
+                    .withTxMetadata(txMetadata)
+                    .includingProperties(includeProperties)
+                    .excludingProperties(excludeProperties)
+                    .build());
         }
 
         return result;
@@ -176,12 +198,22 @@ public class RelationshipPattern implements Pattern {
     }
 
     @Override
-    public void withMetadata(Map<String, Object> metadata) {
-        this.metadata.putAll(metadata);
+    public void withChangesTo(Set<String> changesTo) {
+        this.changesTo = changesTo;
     }
 
     @Override
-    public void withChangesTo(Set<String> changesTo) {
-        this.changesTo = changesTo;
+    public void withExecutingUser(String user) {
+        this.executingUser = user;
+    }
+
+    @Override
+    public void withAuthenticatedUser(String user) {
+        this.authenticatedUser = user;
+    }
+
+    @Override
+    public void withTxMetadata(Map<String, Object> metadata) {
+        this.txMetadata = metadata;
     }
 }

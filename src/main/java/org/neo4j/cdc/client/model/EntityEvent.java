@@ -18,6 +18,13 @@ package org.neo4j.cdc.client.model;
 
 import java.util.Objects;
 
+/**
+ * Describes a change event related to a node or a relationship.
+ *
+ * @param <T> type of state information
+ * @see NodeState
+ * @see RelationshipState
+ */
 public abstract class EntityEvent<T extends State> implements Event {
 
     private final String elementId;
@@ -34,22 +41,47 @@ public abstract class EntityEvent<T extends State> implements Event {
         this.after = after;
     }
 
+    /**
+     * The elementId of the changed entity (node or relationship).
+     *
+     * @return element id
+     */
     public String getElementId() {
         return this.elementId;
     }
 
+    /**
+     * Type of the changed entity.
+     *
+     * @return event type
+     */
     public EventType getEventType() {
         return this.eventType;
     }
 
+    /**
+     * Type of the operation.
+     *
+     * @return operation type
+     */
     public EntityOperation getOperation() {
         return this.operation;
     }
 
+    /**
+     * The state of the entity before the change.
+     *
+     * @return state
+     */
     public T getBefore() {
         return this.before;
     }
 
+    /**
+     * The state of the entity after the change.
+     *
+     * @return state
+     */
     public T getAfter() {
         return this.after;
     }

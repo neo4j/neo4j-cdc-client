@@ -21,6 +21,9 @@ import java.util.Map;
 import java.util.Objects;
 import org.apache.commons.collections4.MapUtils;
 
+/**
+ * Describes a change event related to a node.
+ */
 public class NodeEvent extends EntityEvent<NodeState> {
 
     private final Map<String, List<Map<String, Object>>> keys;
@@ -39,10 +42,22 @@ public class NodeEvent extends EntityEvent<NodeState> {
         this.labels = labels;
     }
 
+    /**
+     * List of node labels before the change was applied. It contains the complete set of labels
+     * regardless of the CDC mode.
+     *
+     * @return labels
+     */
     public List<String> getLabels() {
         return this.labels;
     }
 
+    /**
+     * The keys identifying the changed node, grouped per label.
+     * This requires key constraints defined on the changed entities.
+     *
+     * @return map of labels to list of key properties on that label
+     */
     public Map<String, List<Map<String, Object>>> getKeys() {
         return this.keys;
     }

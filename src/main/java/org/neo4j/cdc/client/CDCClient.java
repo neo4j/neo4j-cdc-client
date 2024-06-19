@@ -37,7 +37,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /**
- * @author Gerrit Meier
+ * Default {@link CDCService} implementation.
  */
 public class CDCClient implements CDCService {
     private final Logger log = LoggerFactory.getLogger(CDCClient.class);
@@ -50,10 +50,27 @@ public class CDCClient implements CDCService {
     private final SessionConfigSupplier sessionConfigSupplier;
     private final Duration streamingPollInterval;
 
+    /**
+     * Construct an instance from a driver and an optional list of selectors.
+     *
+     * @param driver Driver instance to use
+     * @param selectors List of selectors to query changes for
+     *
+     * @see Selector
+     */
     public CDCClient(Driver driver, Selector... selectors) {
         this(driver, Duration.ofSeconds(1), selectors);
     }
 
+    /**
+     * Construct an instance from a driver, a poll interval and an optional list of selectors.
+     *
+     * @param driver Driver instance to use
+     * @param streamingPollInterval Polling interval to mimic streaming when using @link{stream} method
+     * @param selectors List of selectors to query changes for
+     *
+     * @see Selector
+     */
     public CDCClient(Driver driver, Duration streamingPollInterval, Selector... selectors) {
         this.driver = Objects.requireNonNull(driver);
         this.sessionConfigSupplier = () -> SessionConfig.builder().build();
@@ -61,10 +78,29 @@ public class CDCClient implements CDCService {
         this.selectors = selectors == null ? List.of() : Arrays.asList(selectors);
     }
 
+    /**
+     * Construct an instance from a driver, a session config supplier and an optional list of selectors.
+     *
+     * @param driver Driver instance to use
+     * @param sessionConfigSupplier a supplier to customise session configuration
+     * @param selectors List of selectors to query changes for
+     *
+     * @see Selector
+     */
     public CDCClient(Driver driver, SessionConfigSupplier sessionConfigSupplier, Selector... selectors) {
         this(driver, sessionConfigSupplier, Duration.ofSeconds(1), selectors);
     }
 
+    /**
+     * Construct an instance from a driver, a session config supplier, a poll interval and an optional list of selectors.
+     *
+     * @param driver Driver instance to use
+     * @param sessionConfigSupplier a supplier to customise session configuration
+     * @param streamingPollInterval Polling interval to mimic streaming when using @link{stream} method
+     * @param selectors List of selectors to query changes for
+     *
+     * @see Selector
+     */
     public CDCClient(
             Driver driver,
             SessionConfigSupplier sessionConfigSupplier,

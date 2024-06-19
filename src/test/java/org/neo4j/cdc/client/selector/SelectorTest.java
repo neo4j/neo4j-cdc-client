@@ -17,7 +17,6 @@
 package org.neo4j.cdc.client.selector;
 
 import static java.util.Collections.emptyMap;
-import static java.util.Collections.emptySet;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.LocalDate;
@@ -35,104 +34,248 @@ class SelectorTest {
     @Test
     void entitySelectorMatchesEntityEvents() {
         List.of(nodeCreateEvent(), relationshipCreateEvent()).forEach(event -> {
-            assertThat(new EntitySelector().matches(event)).isTrue();
-            assertThat(new EntitySelector(EntityOperation.CREATE).matches(event))
+            assertThat(EntitySelector.builder().build().matches(event)).isTrue();
+            assertThat(EntitySelector.builder()
+                            .withOperation(EntityOperation.CREATE)
+                            .build()
+                            .matches(event))
                     .isTrue();
-            assertThat(new EntitySelector(EntityOperation.UPDATE).matches(event))
+            assertThat(EntitySelector.builder()
+                            .withOperation(EntityOperation.UPDATE)
+                            .build()
+                            .matches(event))
                     .isFalse();
-            assertThat(new EntitySelector(null, Set.of("name")).matches(event)).isTrue();
-            assertThat(new EntitySelector(EntityOperation.CREATE, Set.of("name")).matches(event))
+            assertThat(EntitySelector.builder()
+                            .withChangesTo(Set.of("name"))
+                            .build()
+                            .matches(event))
                     .isTrue();
-            assertThat(new EntitySelector(EntityOperation.UPDATE, Set.of("name")).matches(event))
-                    .isFalse();
-            assertThat(new EntitySelector(null, Set.of("name", "id")).matches(event))
+            assertThat(EntitySelector.builder()
+                            .withOperation(EntityOperation.CREATE)
+                            .withChangesTo(Set.of("name"))
+                            .build()
+                            .matches(event))
                     .isTrue();
-            assertThat(new EntitySelector(EntityOperation.CREATE, Set.of("name", "id")).matches(event))
+            assertThat(EntitySelector.builder()
+                            .withOperation(EntityOperation.UPDATE)
+                            .withChangesTo(Set.of("name"))
+                            .build()
+                            .matches(event))
+                    .isFalse();
+            assertThat(EntitySelector.builder()
+                            .withChangesTo(Set.of("name", "id"))
+                            .build()
+                            .matches(event))
                     .isTrue();
-            assertThat(new EntitySelector(EntityOperation.UPDATE, Set.of("name", "id")).matches(event))
+            assertThat(EntitySelector.builder()
+                            .withOperation(EntityOperation.CREATE)
+                            .withChangesTo(Set.of("name", "id"))
+                            .build()
+                            .matches(event))
+                    .isTrue();
+            assertThat(EntitySelector.builder()
+                            .withOperation(EntityOperation.UPDATE)
+                            .withChangesTo(Set.of("name", "id"))
+                            .build()
+                            .matches(event))
                     .isFalse();
-            assertThat(new EntitySelector(null, Set.of("dob")).matches(event)).isFalse();
-            assertThat(new EntitySelector(EntityOperation.CREATE, Set.of("dob")).matches(event))
+            assertThat(EntitySelector.builder()
+                            .withChangesTo(Set.of("dob"))
+                            .build()
+                            .matches(event))
                     .isFalse();
-            assertThat(new EntitySelector(EntityOperation.UPDATE, Set.of("dob")).matches(event))
+            assertThat(EntitySelector.builder()
+                            .withOperation(EntityOperation.CREATE)
+                            .withChangesTo(Set.of("dob"))
+                            .build()
+                            .matches(event))
                     .isFalse();
-            assertThat(new EntitySelector(EntityOperation.CREATE, Set.of("name", "id", "dob")).matches(event))
+            assertThat(EntitySelector.builder()
+                            .withOperation(EntityOperation.UPDATE)
+                            .withChangesTo(Set.of("dob"))
+                            .build()
+                            .matches(event))
                     .isFalse();
-            assertThat(new EntitySelector(EntityOperation.UPDATE, Set.of("name", "id", "dob")).matches(event))
+            assertThat(EntitySelector.builder()
+                            .withOperation(EntityOperation.CREATE)
+                            .withChangesTo(Set.of("name", "id", "dob"))
+                            .build()
+                            .matches(event))
+                    .isFalse();
+            assertThat(EntitySelector.builder()
+                            .withOperation(EntityOperation.UPDATE)
+                            .withChangesTo(Set.of("name", "id", "dob"))
+                            .build()
+                            .matches(event))
                     .isFalse();
         });
 
         List.of(nodeDeleteEvent(), relationshipDeleteEvent()).forEach(event -> {
-            assertThat(new EntitySelector().matches(event)).isTrue();
-            assertThat(new EntitySelector(EntityOperation.DELETE).matches(event))
+            assertThat(EntitySelector.builder().build().matches(event)).isTrue();
+            assertThat(EntitySelector.builder()
+                            .withOperation(EntityOperation.DELETE)
+                            .build()
+                            .matches(event))
                     .isTrue();
-            assertThat(new EntitySelector(EntityOperation.UPDATE).matches(event))
+            assertThat(EntitySelector.builder()
+                            .withOperation(EntityOperation.UPDATE)
+                            .build()
+                            .matches(event))
                     .isFalse();
-            assertThat(new EntitySelector(null, Set.of("name")).matches(event)).isTrue();
-            assertThat(new EntitySelector(EntityOperation.DELETE, Set.of("name")).matches(event))
+            assertThat(EntitySelector.builder()
+                            .withChangesTo(Set.of("name"))
+                            .build()
+                            .matches(event))
                     .isTrue();
-            assertThat(new EntitySelector(EntityOperation.UPDATE, Set.of("name")).matches(event))
-                    .isFalse();
-            assertThat(new EntitySelector(null, Set.of("name", "id")).matches(event))
+            assertThat(EntitySelector.builder()
+                            .withOperation(EntityOperation.DELETE)
+                            .withChangesTo(Set.of("name"))
+                            .build()
+                            .matches(event))
                     .isTrue();
-            assertThat(new EntitySelector(EntityOperation.DELETE, Set.of("name", "id")).matches(event))
+            assertThat(EntitySelector.builder()
+                            .withOperation(EntityOperation.UPDATE)
+                            .withChangesTo(Set.of("name"))
+                            .build()
+                            .matches(event))
+                    .isFalse();
+            assertThat(EntitySelector.builder()
+                            .withChangesTo(Set.of("name", "id"))
+                            .build()
+                            .matches(event))
                     .isTrue();
-            assertThat(new EntitySelector(EntityOperation.UPDATE, Set.of("name", "id")).matches(event))
+            assertThat(EntitySelector.builder()
+                            .withOperation(EntityOperation.DELETE)
+                            .withChangesTo(Set.of("name", "id"))
+                            .build()
+                            .matches(event))
+                    .isTrue();
+            assertThat(EntitySelector.builder()
+                            .withOperation(EntityOperation.UPDATE)
+                            .withChangesTo(Set.of("name", "id"))
+                            .build()
+                            .matches(event))
                     .isFalse();
-            assertThat(new EntitySelector(null, Set.of("dob")).matches(event)).isFalse();
-            assertThat(new EntitySelector(EntityOperation.DELETE, Set.of("dob")).matches(event))
+            assertThat(EntitySelector.builder()
+                            .withChangesTo(Set.of("dob"))
+                            .build()
+                            .matches(event))
                     .isFalse();
-            assertThat(new EntitySelector(EntityOperation.UPDATE, Set.of("dob")).matches(event))
+            assertThat(EntitySelector.builder()
+                            .withOperation(EntityOperation.DELETE)
+                            .withChangesTo(Set.of("dob"))
+                            .build()
+                            .matches(event))
                     .isFalse();
-            assertThat(new EntitySelector(EntityOperation.DELETE, Set.of("name", "id", "dob")).matches(event))
+            assertThat(EntitySelector.builder()
+                            .withOperation(EntityOperation.UPDATE)
+                            .withChangesTo(Set.of("dob"))
+                            .build()
+                            .matches(event))
                     .isFalse();
-            assertThat(new EntitySelector(EntityOperation.UPDATE, Set.of("name", "id", "dob")).matches(event))
+            assertThat(EntitySelector.builder()
+                            .withOperation(EntityOperation.DELETE)
+                            .withChangesTo(Set.of("name", "id", "dob"))
+                            .build()
+                            .matches(event))
+                    .isFalse();
+            assertThat(EntitySelector.builder()
+                            .withOperation(EntityOperation.UPDATE)
+                            .withChangesTo(Set.of("name", "id", "dob"))
+                            .build()
+                            .matches(event))
                     .isFalse();
         });
 
         List.of(nodeUpdateEvent(), relationshipUpdateEvent()).forEach(event -> {
-            assertThat(new EntitySelector().matches(event)).isTrue();
-            assertThat(new EntitySelector(EntityOperation.UPDATE).matches(event))
-                    .isTrue();
-            assertThat(new EntitySelector(null, Set.of("name")).matches(event)).isTrue();
-            assertThat(new EntitySelector(null, Set.of("surname")).matches(event))
-                    .isTrue();
-            assertThat(new EntitySelector(null, Set.of("dob")).matches(event)).isTrue();
-            assertThat(new EntitySelector(null, Set.of("name", "surname", "dob")).matches(event))
-                    .isTrue();
-            assertThat(new EntitySelector(null, Set.of("name"), Map.of("txMetadata.app", "neo4j-browser"))
+            assertThat(EntitySelector.builder().build().matches(event)).isTrue();
+            assertThat(EntitySelector.builder()
+                            .withOperation(EntityOperation.UPDATE)
+                            .build()
                             .matches(event))
                     .isTrue();
-            assertThat(new EntitySelector(
-                                    null,
-                                    Set.of("name"),
-                                    Map.of(EntitySelector.METADATA_KEY_AUTHENTICATED_USER, "neo4j"))
+            assertThat(EntitySelector.builder()
+                            .withChangesTo(Set.of("name"))
+                            .build()
                             .matches(event))
                     .isTrue();
-            assertThat(new EntitySelector(
-                                    null, Set.of("name"), Map.of(EntitySelector.METADATA_KEY_EXECUTING_USER, "test"))
+            assertThat(EntitySelector.builder()
+                            .withChangesTo(Set.of("surname"))
+                            .build()
                             .matches(event))
                     .isTrue();
-            assertThat(new EntitySelector(EntityOperation.CREATE, Set.of("name")).matches(event))
-                    .isFalse();
-            assertThat(new EntitySelector(null, Set.of("id")).matches(event)).isFalse();
-            assertThat(new EntitySelector(null, Set.of("name", "id")).matches(event))
-                    .isFalse();
-            assertThat(new EntitySelector(EntityOperation.UPDATE, Set.of("dob")).matches(event))
+            assertThat(EntitySelector.builder()
+                            .withChangesTo(Set.of("dob"))
+                            .build()
+                            .matches(event))
                     .isTrue();
-            assertThat(new EntitySelector(EntityOperation.UPDATE, Set.of("name", "id", "dob")).matches(event))
-                    .isFalse();
-            assertThat(new EntitySelector(null, Set.of("name"), Map.of("txMetadata", Map.of("app", "cypher-shell")))
+            assertThat(EntitySelector.builder()
+                            .withChangesTo(Set.of("name", "surname", "dob"))
+                            .build()
+                            .matches(event))
+                    .isTrue();
+            assertThat(EntitySelector.builder()
+                            .withChangesTo(Set.of("name"))
+                            .withTxMetadata(Map.of("app", "neo4j-browser"))
+                            .build()
                             .matches(event))
                     .isFalse();
-            assertThat(new EntitySelector(
-                                    null,
-                                    Set.of("name"),
-                                    Map.of(EntitySelector.METADATA_KEY_AUTHENTICATED_USER, "unknown"))
+            assertThat(EntitySelector.builder()
+                            .withChangesTo(Set.of("name"))
+                            .withAuthenticatedUser("neo4j")
+                            .build()
+                            .matches(event))
+                    .isTrue();
+            assertThat(EntitySelector.builder()
+                            .withChangesTo(Set.of("name"))
+                            .withExecutingUser("test")
+                            .build()
+                            .matches(event))
+                    .isTrue();
+            assertThat(EntitySelector.builder()
+                            .withOperation(EntityOperation.CREATE)
+                            .withChangesTo(Set.of("name"))
+                            .build()
                             .matches(event))
                     .isFalse();
-            assertThat(new EntitySelector(
-                                    null, Set.of("name"), Map.of(EntitySelector.METADATA_KEY_EXECUTING_USER, "unknown"))
+            assertThat(EntitySelector.builder()
+                            .withChangesTo(Set.of("id"))
+                            .build()
+                            .matches(event))
+                    .isFalse();
+            assertThat(EntitySelector.builder()
+                            .withChangesTo(Set.of("name", "id"))
+                            .build()
+                            .matches(event))
+                    .isFalse();
+            assertThat(EntitySelector.builder()
+                            .withOperation(EntityOperation.UPDATE)
+                            .withChangesTo(Set.of("dob"))
+                            .build()
+                            .matches(event))
+                    .isTrue();
+            assertThat(EntitySelector.builder()
+                            .withOperation(EntityOperation.UPDATE)
+                            .withChangesTo(Set.of("name", "id", "dob"))
+                            .build()
+                            .matches(event))
+                    .isFalse();
+            assertThat(EntitySelector.builder()
+                            .withChangesTo(Set.of("name"))
+                            .withTxMetadata(Map.of("app", "cypher-shell"))
+                            .build()
+                            .matches(event))
+                    .isFalse();
+            assertThat(EntitySelector.builder()
+                            .withChangesTo(Set.of("name"))
+                            .withAuthenticatedUser("unknown")
+                            .build()
+                            .matches(event))
+                    .isFalse();
+            assertThat(EntitySelector.builder()
+                            .withChangesTo(Set.of("name"))
+                            .withExecutingUser("unknown")
+                            .build()
                             .matches(event))
                     .isFalse();
         });
@@ -142,293 +285,340 @@ class SelectorTest {
     void nodeSelectorMatchesNodeEvents() {
         var event = nodeCreateEvent();
 
-        assertThat(new NodeSelector().matches(event)).isTrue();
-        assertThat(new NodeSelector(EntityOperation.CREATE).matches(event)).isTrue();
-        assertThat(new NodeSelector(EntityOperation.DELETE).matches(event)).isFalse();
-        assertThat(new NodeSelector(EntityOperation.CREATE, Set.of("name")).matches(event))
-                .isTrue();
-        assertThat(new NodeSelector(EntityOperation.CREATE, Set.of("name", "id")).matches(event))
-                .isTrue();
-        assertThat(new NodeSelector(EntityOperation.CREATE, Set.of("name", "id", "dob")).matches(event))
-                .isFalse();
-        assertThat(new NodeSelector(null, emptySet(), Set.of("Person")).matches(event))
-                .isTrue();
-        assertThat(new NodeSelector(null, emptySet(), Set.of("Person", "Employee")).matches(event))
-                .isTrue();
-        assertThat(new NodeSelector(null, emptySet(), Set.of("Employee", "Person")).matches(event))
-                .isTrue();
-        assertThat(new NodeSelector(null, emptySet(), Set.of("Company")).matches(event))
-                .isFalse();
-        assertThat(new NodeSelector(null, emptySet(), Set.of("Person", "Company")).matches(event))
-                .isFalse();
-        assertThat(new NodeSelector(EntityOperation.CREATE, emptySet(), Set.of("Employee", "Person")).matches(event))
-                .isTrue();
-        assertThat(new NodeSelector(EntityOperation.UPDATE, emptySet(), Set.of("Employee", "Person")).matches(event))
-                .isFalse();
-        assertThat(new NodeSelector(null, emptySet(), emptySet(), Map.of("id", 1L), emptyMap()).matches(event))
-                .isTrue();
-        assertThat(new NodeSelector(null, emptySet(), emptySet(), Map.of("id", 1L, "dob", "1990"), emptyMap())
-                        .matches(event))
-                .isFalse();
-        assertThat(new NodeSelector(null, emptySet(), emptySet(), Map.of("id", 1L, "role", "manager"), emptyMap())
+        assertThat(NodeSelector.builder().build().matches(event)).isTrue();
+        assertThat(NodeSelector.builder()
+                        .withOperation(EntityOperation.CREATE)
+                        .build()
                         .matches(event))
                 .isTrue();
-        assertThat(new NodeSelector(
-                                null, emptySet(), Set.of("Employee"), Map.of("id", 1L, "role", "manager"), emptyMap())
-                        .matches(event))
-                .isTrue();
-        assertThat(new NodeSelector(
-                                null,
-                                emptySet(),
-                                Set.of("Employee", "Person"),
-                                Map.of("id", 1L, "role", "manager"),
-                                emptyMap())
-                        .matches(event))
-                .isTrue();
-        assertThat(new NodeSelector(null, emptySet(), Set.of("Person"), Map.of("id", 1L, "role", "manager"), emptyMap())
-                        .matches(event))
-                .isTrue();
-        assertThat(new NodeSelector(
-                                null,
-                                emptySet(),
-                                Set.of("Person", "Manager"),
-                                Map.of("id", 1L, "role", "manager"),
-                                emptyMap())
+        assertThat(NodeSelector.builder()
+                        .withOperation(EntityOperation.DELETE)
+                        .build()
                         .matches(event))
                 .isFalse();
-        assertThat(new NodeSelector(
-                                null,
-                                emptySet(),
-                                emptySet(),
-                                Map.of("id", 1L, "name", "acme corp", "prop", false),
-                                emptyMap())
+        assertThat(NodeSelector.builder()
+                        .withOperation(EntityOperation.CREATE)
+                        .withChangesTo(Set.of("name"))
+                        .build()
+                        .matches(event))
+                .isTrue();
+        assertThat(NodeSelector.builder()
+                        .withOperation(EntityOperation.CREATE)
+                        .withChangesTo(Set.of("name", "id"))
+                        .build()
+                        .matches(event))
+                .isTrue();
+        assertThat(NodeSelector.builder()
+                        .withOperation(EntityOperation.CREATE)
+                        .withChangesTo(Set.of("name", "id", "dob"))
+                        .build()
+                        .matches(event))
+                .isFalse();
+        assertThat(NodeSelector.builder().withLabels(Set.of("Person")).build().matches(event))
+                .isTrue();
+        assertThat(NodeSelector.builder()
+                        .withLabels(Set.of("Person", "Employee"))
+                        .build()
+                        .matches(event))
+                .isTrue();
+        assertThat(NodeSelector.builder()
+                        .withLabels(Set.of("Employee", "Person"))
+                        .build()
+                        .matches(event))
+                .isTrue();
+        assertThat(NodeSelector.builder().withLabels(Set.of("Company")).build().matches(event))
+                .isFalse();
+        assertThat(NodeSelector.builder()
+                        .withLabels(Set.of("Person", "Company"))
+                        .build()
+                        .matches(event))
+                .isFalse();
+        assertThat(NodeSelector.builder()
+                        .withOperation(EntityOperation.CREATE)
+                        .withLabels(Set.of("Employee", "Person"))
+                        .build()
+                        .matches(event))
+                .isTrue();
+        assertThat(NodeSelector.builder()
+                        .withOperation(EntityOperation.UPDATE)
+                        .withLabels(Set.of("Employee", "Person"))
+                        .build()
+                        .matches(event))
+                .isFalse();
+        assertThat(NodeSelector.builder().withKey(Map.of("id", 1L)).build().matches(event))
+                .isTrue();
+        assertThat(NodeSelector.builder()
+                        .withKey(Map.of("id", 1L, "dob", "1990"))
+                        .build()
+                        .matches(event))
+                .isFalse();
+        assertThat(NodeSelector.builder()
+                        .withKey(Map.of("id", 1L, "role", "manager"))
+                        .build()
+                        .matches(event))
+                .isTrue();
+        assertThat(NodeSelector.builder()
+                        .withLabels(Set.of("Employee"))
+                        .withKey(Map.of("id", 1L, "role", "manager"))
+                        .build()
+                        .matches(event))
+                .isTrue();
+        assertThat(NodeSelector.builder()
+                        .withLabels(Set.of("Employee", "Person"))
+                        .withKey(Map.of("id", 1L, "role", "manager"))
+                        .build()
+                        .matches(event))
+                .isTrue();
+        assertThat(NodeSelector.builder()
+                        .withLabels(Set.of("Person"))
+                        .withKey(Map.of("id", 1L, "role", "manager"))
+                        .build()
+                        .matches(event))
+                .isTrue();
+        assertThat(NodeSelector.builder()
+                        .withLabels(Set.of("Person", "Manager"))
+                        .withKey(Map.of("id", 1L, "role", "manager"))
+                        .build()
+                        .matches(event))
+                .isFalse();
+        assertThat(NodeSelector.builder()
+                        .withKey(Map.of("id", 1L, "name", "acme corp", "prop", false))
+                        .build()
                         .matches(event))
                 .isFalse();
 
-        assertThat(new NodeSelector().matches(relationshipCreateEvent())).isFalse();
+        assertThat(NodeSelector.builder().build().matches(relationshipCreateEvent()))
+                .isFalse();
     }
 
     @Test
     void relationshipSelectorMatches() {
         var createEvent = relationshipCreateEvent();
 
-        assertThat(new RelationshipSelector().matches(createEvent)).isTrue();
-        assertThat(new RelationshipSelector(EntityOperation.CREATE).matches(createEvent))
-                .isTrue();
-        assertThat(new RelationshipSelector(EntityOperation.DELETE).matches(createEvent))
-                .isFalse();
-
-        assertThat(new RelationshipSelector(null, emptySet(), "WORKS_FOR").matches(createEvent))
-                .isTrue();
-        assertThat(new RelationshipSelector(null, emptySet(), "KNOWS").matches(createEvent))
-                .isFalse();
-        assertThat(new RelationshipSelector(
-                                null,
-                                emptySet(),
-                                "WORKS_FOR",
-                                new RelationshipNodeSelector(Set.of("Person"), emptyMap()))
+        assertThat(RelationshipSelector.builder().build().matches(createEvent)).isTrue();
+        assertThat(RelationshipSelector.builder()
+                        .withOperation(EntityOperation.CREATE)
+                        .build()
                         .matches(createEvent))
                 .isTrue();
-        assertThat(new RelationshipSelector(
-                                null,
-                                emptySet(),
-                                "WORKS_FOR",
-                                new RelationshipNodeSelector(),
-                                new RelationshipNodeSelector(Set.of("Company"), emptyMap()))
-                        .matches(createEvent))
-                .isTrue();
-        assertThat(new RelationshipSelector(
-                                null,
-                                emptySet(),
-                                "WORKS_FOR",
-                                new RelationshipNodeSelector(Set.of("Person"), emptyMap()),
-                                new RelationshipNodeSelector(Set.of("Company"), emptyMap()))
-                        .matches(createEvent))
-                .isTrue();
-        assertThat(new RelationshipSelector(
-                                null,
-                                emptySet(),
-                                "WORKS_FOR",
-                                new RelationshipNodeSelector(Set.of("Person"), Map.of("id", 1L)),
-                                new RelationshipNodeSelector(Set.of("Company"), Map.of("id", 5L)))
-                        .matches(createEvent))
-                .isTrue();
-        assertThat(new RelationshipSelector(
-                                null,
-                                emptySet(),
-                                "WORKS_FOR",
-                                new RelationshipNodeSelector(Set.of("Person"), Map.of("id", 1L)),
-                                new RelationshipNodeSelector(Set.of("Company"), Map.of("id", 5L)),
-                                Map.of("year", 1990L),
-                                emptyMap())
-                        .matches(createEvent))
-                .isTrue();
-
-        assertThat(new RelationshipSelector(
-                                null,
-                                emptySet(),
-                                "WORKS_FOR",
-                                new RelationshipNodeSelector(Set.of("Person", "Employee"), Map.of("id", 1L)),
-                                new RelationshipNodeSelector(Set.of("Company"), Map.of("id", 5L)),
-                                Map.of("year", 1990L),
-                                emptyMap())
-                        .matches(createEvent))
-                .isFalse();
-        assertThat(new RelationshipSelector(
-                                null,
-                                emptySet(),
-                                "WORKS_FOR",
-                                new RelationshipNodeSelector(Set.of("Person"), Map.of("id", 1L)),
-                                new RelationshipNodeSelector(Set.of("Company", "Corportation"), Map.of("id", 5L)),
-                                Map.of("year", 1990L),
-                                emptyMap())
-                        .matches(createEvent))
-                .isFalse();
-        assertThat(new RelationshipSelector(
-                                null,
-                                emptySet(),
-                                "WORKS_FOR",
-                                new RelationshipNodeSelector(Set.of("Person"), Map.of("id", true)),
-                                new RelationshipNodeSelector(Set.of("Company"), Map.of("id", 5L)),
-                                Map.of("year", 1990L),
-                                emptyMap())
-                        .matches(createEvent))
-                .isFalse();
-        assertThat(new RelationshipSelector(
-                                null,
-                                emptySet(),
-                                "WORKS_FOR",
-                                new RelationshipNodeSelector(Set.of("Person"), Map.of("id", 1L)),
-                                new RelationshipNodeSelector(Set.of("Company"), Map.of("id", "5")),
-                                Map.of("year", 1990L),
-                                emptyMap())
-                        .matches(createEvent))
-                .isFalse();
-        assertThat(new RelationshipSelector(
-                                null,
-                                emptySet(),
-                                "WORKS_FOR",
-                                new RelationshipNodeSelector(Set.of("Person"), Map.of("id", 1L)),
-                                new RelationshipNodeSelector(Set.of("Company"), Map.of("id", "5")),
-                                Map.of("year", "1990"),
-                                emptyMap())
+        assertThat(RelationshipSelector.builder()
+                        .withOperation(EntityOperation.DELETE)
+                        .build()
                         .matches(createEvent))
                 .isFalse();
 
-        assertThat(new RelationshipSelector().matches(nodeCreateEvent())).isFalse();
+        assertThat(RelationshipSelector.builder().withType("WORKS_FOR").build().matches(createEvent))
+                .isTrue();
+        assertThat(RelationshipSelector.builder().withType("KNOWS").build().matches(createEvent))
+                .isFalse();
+        assertThat(RelationshipSelector.builder()
+                        .withType("WORKS_FOR")
+                        .withStart(RelationshipNodeSelector.builder()
+                                .withLabels(Set.of("Person"))
+                                .build())
+                        .build()
+                        .matches(createEvent))
+                .isTrue();
+        assertThat(RelationshipSelector.builder()
+                        .withType("WORKS_FOR")
+                        .withEnd(RelationshipNodeSelector.builder()
+                                .withLabels(Set.of("Company"))
+                                .build())
+                        .build()
+                        .matches(createEvent))
+                .isTrue();
+        assertThat(RelationshipSelector.builder()
+                        .withType("WORKS_FOR")
+                        .withStart(RelationshipNodeSelector.builder()
+                                .withLabels(Set.of("Person"))
+                                .build())
+                        .withEnd(RelationshipNodeSelector.builder()
+                                .withLabels(Set.of("Company"))
+                                .build())
+                        .build()
+                        .matches(createEvent))
+                .isTrue();
+        assertThat(RelationshipSelector.builder()
+                        .withType("WORKS_FOR")
+                        .withStart(RelationshipNodeSelector.builder()
+                                .withLabels(Set.of("Person"))
+                                .withKey(Map.of("id", 1L))
+                                .build())
+                        .withEnd(RelationshipNodeSelector.builder()
+                                .withLabels(Set.of("Company"))
+                                .withKey(Map.of("id", 5L))
+                                .build())
+                        .build()
+                        .matches(createEvent))
+                .isTrue();
+        assertThat(RelationshipSelector.builder()
+                        .withType("WORKS_FOR")
+                        .withStart(RelationshipNodeSelector.builder()
+                                .withLabels(Set.of("Person"))
+                                .withKey(Map.of("id", 1L))
+                                .build())
+                        .withEnd(RelationshipNodeSelector.builder()
+                                .withLabels(Set.of("Company"))
+                                .withKey(Map.of("id", 5L))
+                                .build())
+                        .withKey(Map.of("year", 1990L))
+                        .build()
+                        .matches(createEvent))
+                .isTrue();
+
+        assertThat(RelationshipSelector.builder()
+                        .withType("WORKS_FOR")
+                        .withStart(RelationshipNodeSelector.builder()
+                                .withLabels(Set.of("Person", "Employee"))
+                                .withKey(Map.of("id", 1L))
+                                .build())
+                        .withEnd(RelationshipNodeSelector.builder()
+                                .withLabels(Set.of("Company"))
+                                .withKey(Map.of("id", 5L))
+                                .build())
+                        .withKey(Map.of("year", 1990L))
+                        .build()
+                        .matches(createEvent))
+                .isFalse();
+        assertThat(RelationshipSelector.builder()
+                        .withType("WORKS_FOR")
+                        .withStart(RelationshipNodeSelector.builder()
+                                .withLabels(Set.of("Person"))
+                                .withKey(Map.of("id", 1L))
+                                .build())
+                        .withEnd(RelationshipNodeSelector.builder()
+                                .withLabels(Set.of("Company", "Corportation"))
+                                .withKey(Map.of("id", 5L))
+                                .build())
+                        .withKey(Map.of("year", 1990L))
+                        .build()
+                        .matches(createEvent))
+                .isFalse();
+        assertThat(RelationshipSelector.builder()
+                        .withType("WORKS_FOR")
+                        .withStart(RelationshipNodeSelector.builder()
+                                .withLabels(Set.of("Person"))
+                                .withKey(Map.of("id", true))
+                                .build())
+                        .withEnd(RelationshipNodeSelector.builder()
+                                .withLabels(Set.of("Company"))
+                                .withKey(Map.of("id", 5L))
+                                .build())
+                        .withKey(Map.of("year", 1990L))
+                        .build()
+                        .matches(createEvent))
+                .isFalse();
+        assertThat(RelationshipSelector.builder()
+                        .withType("WORKS_FOR")
+                        .withStart(RelationshipNodeSelector.builder()
+                                .withLabels(Set.of("Person"))
+                                .withKey(Map.of("id", 1L))
+                                .build())
+                        .withEnd(RelationshipNodeSelector.builder()
+                                .withLabels(Set.of("Company"))
+                                .withKey(Map.of("id", "5"))
+                                .build())
+                        .withKey(Map.of("year", 1990L))
+                        .build()
+                        .matches(createEvent))
+                .isFalse();
+        assertThat(RelationshipSelector.builder()
+                        .withType("WORKS_FOR")
+                        .withStart(RelationshipNodeSelector.builder()
+                                .withLabels(Set.of("Person"))
+                                .withKey(Map.of("id", 1L))
+                                .build())
+                        .withEnd(RelationshipNodeSelector.builder()
+                                .withLabels(Set.of("Company"))
+                                .withKey(Map.of("id", "5"))
+                                .build())
+                        .withKey(Map.of("year", "1990"))
+                        .build()
+                        .matches(createEvent))
+                .isFalse();
+
+        assertThat(RelationshipSelector.builder().build().matches(nodeCreateEvent()))
+                .isFalse();
     }
 
     @Test
     void metadataSelectorMatches() {
         List.of(nodeCreateEvent(), nodeUpdateEvent(), nodeDeleteEvent()).forEach(event -> {
-            assertThat(new EntitySelector(
-                                    null, emptySet(), Map.of(EntitySelector.METADATA_KEY_AUTHENTICATED_USER, "neo4j"))
+            assertThat(EntitySelector.builder()
+                            .withAuthenticatedUser("neo4j")
+                            .build()
                             .matches(event))
                     .isTrue();
 
-            assertThat(new EntitySelector(null, emptySet(), Map.of(EntitySelector.METADATA_KEY_EXECUTING_USER, "test"))
+            assertThat(EntitySelector.builder()
+                            .withExecutingUser("test")
+                            .build()
                             .matches(event))
                     .isTrue();
 
-            assertThat(new EntitySelector(
-                                    null,
-                                    emptySet(),
-                                    Map.of(
-                                            EntitySelector.METADATA_KEY_AUTHENTICATED_USER,
-                                            "neo4j",
-                                            EntitySelector.METADATA_KEY_EXECUTING_USER,
-                                            "test"))
+            assertThat(EntitySelector.builder()
+                            .withAuthenticatedUser("neo4j")
+                            .withExecutingUser("test")
+                            .build()
                             .matches(event))
                     .isTrue();
 
-            assertThat(new EntitySelector(
-                                    null,
-                                    emptySet(),
-                                    Map.of(EntitySelector.METADATA_KEY_TX_METADATA, Map.of("app.name", "my-super-app")))
+            assertThat(EntitySelector.builder()
+                            .withTxMetadata(Map.of("app.name", "my-super-app"))
+                            .build()
                             .matches(event))
                     .isTrue();
 
-            assertThat(new EntitySelector(
-                                    null,
-                                    emptySet(),
-                                    Map.of(
-                                            EntitySelector.METADATA_KEY_TX_METADATA,
-                                            Map.of("app.name", "my-super-app", "app.version", "1.0")))
+            assertThat(EntitySelector.builder()
+                            .withTxMetadata(Map.of("app.name", "my-super-app", "app.version", "1.0"))
+                            .build()
                             .matches(event))
                     .isTrue();
 
-            assertThat(new EntitySelector(
-                                    null,
-                                    emptySet(),
-                                    Map.of(
-                                            EntitySelector.METADATA_KEY_AUTHENTICATED_USER,
-                                            "neo4j",
-                                            EntitySelector.METADATA_KEY_EXECUTING_USER,
-                                            "test",
-                                            EntitySelector.METADATA_KEY_TX_METADATA,
-                                            Map.of("app.name", "my-super-app", "app.version", "1.0")))
+            assertThat(EntitySelector.builder()
+                            .withAuthenticatedUser("neo4j")
+                            .withExecutingUser("test")
+                            .withTxMetadata(Map.of("app.name", "my-super-app", "app.version", "1.0"))
+                            .build()
                             .matches(event))
                     .isTrue();
 
-            assertThat(new EntitySelector(
-                                    null,
-                                    emptySet(),
-                                    Map.of(
-                                            EntitySelector.METADATA_KEY_TX_METADATA,
-                                            Map.of(
-                                                    "app.name",
-                                                    "my-super-app",
-                                                    "app.version",
-                                                    "1.0",
-                                                    "app.user",
-                                                    "unknown")))
+            assertThat(EntitySelector.builder()
+                            .withTxMetadata(
+                                    Map.of("app.name", "my-super-app", "app.version", "1.0", "app.user", "unknown"))
+                            .build()
                             .matches(event))
                     .isFalse();
 
-            assertThat(new EntitySelector(
-                                    null,
-                                    emptySet(),
-                                    Map.of(
-                                            EntitySelector.METADATA_KEY_AUTHENTICATED_USER,
-                                            "neo4j",
-                                            EntitySelector.METADATA_KEY_EXECUTING_USER,
-                                            "test",
-                                            EntitySelector.METADATA_KEY_TX_METADATA,
-                                            Map.of("app.name", "my-super-app", "app.version", "2.0")))
+            assertThat(EntitySelector.builder()
+                            .withAuthenticatedUser("neo4j")
+                            .withExecutingUser("test")
+                            .withTxMetadata(Map.of("app.name", "my-super-app", "app.version", "2.0"))
+                            .build()
                             .matches(event))
                     .isFalse();
 
-            assertThat(new EntitySelector(
-                                    null,
-                                    emptySet(),
-                                    Map.of(
-                                            EntitySelector.METADATA_KEY_AUTHENTICATED_USER,
-                                            "neo4j",
-                                            EntitySelector.METADATA_KEY_EXECUTING_USER,
-                                            "neo4j",
-                                            EntitySelector.METADATA_KEY_TX_METADATA,
-                                            Map.of("app.name", "my-super-app", "app.version", "1.0")))
+            assertThat(EntitySelector.builder()
+                            .withAuthenticatedUser("neo4j")
+                            .withExecutingUser("neo4j")
+                            .withTxMetadata(Map.of("app.name", "my-super-app", "app.version", "1.0"))
+                            .build()
                             .matches(event))
                     .isFalse();
 
-            assertThat(new EntitySelector(
-                                    null,
-                                    emptySet(),
-                                    Map.of(
-                                            EntitySelector.METADATA_KEY_AUTHENTICATED_USER,
-                                            "neo4j",
-                                            EntitySelector.METADATA_KEY_EXECUTING_USER,
-                                            "test",
-                                            EntitySelector.METADATA_KEY_TX_METADATA,
-                                            Map.of(
-                                                    "app.name",
-                                                    "my-super-app",
-                                                    "app.version",
-                                                    "1.0",
-                                                    "app.user",
-                                                    "test",
-                                                    "app.code",
-                                                    "no-code")))
+            assertThat(EntitySelector.builder()
+                            .withAuthenticatedUser("neo4j")
+                            .withExecutingUser("test")
+                            .withTxMetadata(Map.of(
+                                    "app.name",
+                                    "my-super-app",
+                                    "app.version",
+                                    "1.0",
+                                    "app.user",
+                                    "test",
+                                    "app.code",
+                                    "no-code"))
+                            .build()
                             .matches(event))
                     .isFalse();
         });
@@ -437,26 +627,37 @@ class SelectorTest {
     @Test
     void applyFiltersShouldArrangeProperties() {
         List.of(nodeCreateEvent(), relationshipCreateEvent()).forEach(event -> {
-            assertThat(new EntitySelector(null, emptySet(), emptySet(), emptySet(), emptyMap()).applyProperties(event))
+            assertThat(EntitySelector.builder().build().applyProperties(event))
                     .extracting("event.after.properties", InstanceOfAssertFactories.map(String.class, Object.class))
                     .containsOnlyKeys("id", "name", "surname");
-            assertThat(new EntitySelector(null, emptySet(), Set.of("*"), emptySet(), emptyMap()).applyProperties(event))
+            assertThat(EntitySelector.builder()
+                            .includingProperties(Set.of("*"))
+                            .build()
+                            .applyProperties(event))
                     .extracting("event.after.properties", InstanceOfAssertFactories.map(String.class, Object.class))
                     .containsOnlyKeys("id", "name", "surname");
-            assertThat(new EntitySelector(null, emptySet(), Set.of("id"), emptySet(), emptyMap())
+            assertThat(EntitySelector.builder()
+                            .includingProperties(Set.of("id"))
+                            .build()
                             .applyProperties(event))
                     .extracting("event.after.properties", InstanceOfAssertFactories.map(String.class, Object.class))
                     .containsOnlyKeys("id");
-            assertThat(new EntitySelector(null, emptySet(), Set.of("id", "name"), emptySet(), emptyMap())
+            assertThat(EntitySelector.builder()
+                            .includingProperties(Set.of("id", "name"))
+                            .build()
                             .applyProperties(event))
                     .extracting("event.after.properties", InstanceOfAssertFactories.map(String.class, Object.class))
                     .containsOnlyKeys("id", "name");
-            assertThat(new EntitySelector(null, emptySet(), emptySet(), Set.of("id"), emptyMap())
+            assertThat(EntitySelector.builder()
+                            .excludingProperties(Set.of("id"))
+                            .build()
                             .applyProperties(event))
                     .extracting("event.after.properties", InstanceOfAssertFactories.map(String.class, Object.class))
                     .containsOnlyKeys("name", "surname")
                     .doesNotContainKey("id");
-            assertThat(new EntitySelector(null, emptySet(), emptySet(), Set.of("id", "name"), emptyMap())
+            assertThat(EntitySelector.builder()
+                            .excludingProperties(Set.of("id", "name"))
+                            .build()
                             .applyProperties(event))
                     .extracting("event.after.properties", InstanceOfAssertFactories.map(String.class, Object.class))
                     .containsOnlyKeys("surname")
@@ -464,26 +665,37 @@ class SelectorTest {
         });
 
         List.of(nodeDeleteEvent(), relationshipDeleteEvent()).forEach(event -> {
-            assertThat(new EntitySelector(null, emptySet(), emptySet(), emptySet(), emptyMap()).applyProperties(event))
+            assertThat(EntitySelector.builder().build().applyProperties(event))
                     .extracting("event.before.properties", InstanceOfAssertFactories.map(String.class, Object.class))
                     .containsOnlyKeys("id", "name", "surname");
-            assertThat(new EntitySelector(null, emptySet(), Set.of("*"), emptySet(), emptyMap()).applyProperties(event))
+            assertThat(EntitySelector.builder()
+                            .includingProperties(Set.of("*"))
+                            .build()
+                            .applyProperties(event))
                     .extracting("event.before.properties", InstanceOfAssertFactories.map(String.class, Object.class))
                     .containsOnlyKeys("id", "name", "surname");
-            assertThat(new EntitySelector(null, emptySet(), Set.of("id"), emptySet(), emptyMap())
+            assertThat(EntitySelector.builder()
+                            .includingProperties(Set.of("id"))
+                            .build()
                             .applyProperties(event))
                     .extracting("event.before.properties", InstanceOfAssertFactories.map(String.class, Object.class))
                     .containsOnlyKeys("id");
-            assertThat(new EntitySelector(null, emptySet(), Set.of("id", "name"), emptySet(), emptyMap())
+            assertThat(EntitySelector.builder()
+                            .includingProperties(Set.of("id", "name"))
+                            .build()
                             .applyProperties(event))
                     .extracting("event.before.properties", InstanceOfAssertFactories.map(String.class, Object.class))
                     .containsOnlyKeys("id", "name");
-            assertThat(new EntitySelector(null, emptySet(), emptySet(), Set.of("id"), emptyMap())
+            assertThat(EntitySelector.builder()
+                            .excludingProperties(Set.of("id"))
+                            .build()
                             .applyProperties(event))
                     .extracting("event.before.properties", InstanceOfAssertFactories.map(String.class, Object.class))
                     .containsOnlyKeys("name", "surname")
                     .doesNotContainKey("id");
-            assertThat(new EntitySelector(null, emptySet(), emptySet(), Set.of("id", "name"), emptyMap())
+            assertThat(EntitySelector.builder()
+                            .excludingProperties(Set.of("id", "name"))
+                            .build()
                             .applyProperties(event))
                     .extracting("event.before.properties", InstanceOfAssertFactories.map(String.class, Object.class))
                     .containsOnlyKeys("surname")
@@ -491,7 +703,7 @@ class SelectorTest {
         });
 
         List.of(nodeUpdateEvent(), relationshipUpdateEvent()).forEach(event -> {
-            assertThat(new EntitySelector(null, emptySet(), emptySet(), emptySet(), emptyMap()).applyProperties(event))
+            assertThat(EntitySelector.builder().build().applyProperties(event))
                     .satisfies(e -> assertThat(e)
                             .extracting(
                                     "event.before.properties",
@@ -501,7 +713,10 @@ class SelectorTest {
                             .extracting(
                                     "event.after.properties", InstanceOfAssertFactories.map(String.class, Object.class))
                             .containsOnlyKeys("id", "name", "dob"));
-            assertThat(new EntitySelector(null, emptySet(), Set.of("*"), emptySet(), emptyMap()).applyProperties(event))
+            assertThat(EntitySelector.builder()
+                            .includingProperties(Set.of("*"))
+                            .build()
+                            .applyProperties(event))
                     .satisfies(e -> assertThat(e)
                             .extracting(
                                     "event.before.properties",
@@ -511,7 +726,9 @@ class SelectorTest {
                             .extracting(
                                     "event.after.properties", InstanceOfAssertFactories.map(String.class, Object.class))
                             .containsOnlyKeys("id", "name", "dob"));
-            assertThat(new EntitySelector(null, emptySet(), Set.of("id"), emptySet(), emptyMap())
+            assertThat(EntitySelector.builder()
+                            .includingProperties(Set.of("id"))
+                            .build()
                             .applyProperties(event))
                     .satisfies(e -> assertThat(e)
                             .extracting(
@@ -522,7 +739,9 @@ class SelectorTest {
                             .extracting(
                                     "event.after.properties", InstanceOfAssertFactories.map(String.class, Object.class))
                             .containsOnlyKeys("id"));
-            assertThat(new EntitySelector(null, emptySet(), Set.of("id", "name"), emptySet(), emptyMap())
+            assertThat(EntitySelector.builder()
+                            .includingProperties(Set.of("id", "name"))
+                            .build()
                             .applyProperties(event))
                     .satisfies(e -> assertThat(e)
                             .extracting(
@@ -533,7 +752,9 @@ class SelectorTest {
                             .extracting(
                                     "event.after.properties", InstanceOfAssertFactories.map(String.class, Object.class))
                             .containsOnlyKeys("id", "name"));
-            assertThat(new EntitySelector(null, emptySet(), emptySet(), Set.of("id"), emptyMap())
+            assertThat(EntitySelector.builder()
+                            .excludingProperties(Set.of("id"))
+                            .build()
                             .applyProperties(event))
                     .satisfies(e -> assertThat(e)
                             .extracting(
@@ -546,7 +767,9 @@ class SelectorTest {
                                     "event.after.properties", InstanceOfAssertFactories.map(String.class, Object.class))
                             .containsOnlyKeys("name", "dob")
                             .doesNotContainKey("id"));
-            assertThat(new EntitySelector(null, emptySet(), emptySet(), Set.of("id", "name"), emptyMap())
+            assertThat(EntitySelector.builder()
+                            .excludingProperties(Set.of("id", "name"))
+                            .build()
                             .applyProperties(event))
                     .satisfies(e -> assertThat(e)
                             .extracting(
@@ -572,6 +795,7 @@ class SelectorTest {
                         "neo4j",
                         "test",
                         "server-1",
+                        "db",
                         CaptureMode.DIFF,
                         "bolt",
                         "127.0.0.1:50000",
@@ -604,6 +828,7 @@ class SelectorTest {
                         "neo4j",
                         "test",
                         "server-1",
+                        "db",
                         CaptureMode.DIFF,
                         "bolt",
                         "127.0.0.1:50000",
@@ -636,6 +861,7 @@ class SelectorTest {
                         "neo4j",
                         "test",
                         "server-1",
+                        "db",
                         CaptureMode.DIFF,
                         "bolt",
                         "127.0.0.1:50000",
@@ -670,6 +896,7 @@ class SelectorTest {
                         "neo4j",
                         "test",
                         "server-1",
+                        "db",
                         CaptureMode.DIFF,
                         "bolt",
                         "127.0.0.1:50000",
@@ -699,6 +926,7 @@ class SelectorTest {
                         "neo4j",
                         "test",
                         "server-1",
+                        "db",
                         CaptureMode.DIFF,
                         "bolt",
                         "127.0.0.1:50000",
@@ -728,6 +956,7 @@ class SelectorTest {
                         "neo4j",
                         "test",
                         "server-1",
+                        "db",
                         CaptureMode.DIFF,
                         "bolt",
                         "127.0.0.1:50000",

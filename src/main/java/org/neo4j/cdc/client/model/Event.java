@@ -20,8 +20,16 @@ import java.util.Map;
 import java.util.Objects;
 import org.apache.commons.collections4.MapUtils;
 
+/**
+ * Describes a change event.
+ */
 public interface Event {
 
+    /**
+     * Type of the changed entity.
+     *
+     * @return event type
+     */
     EventType getEventType();
 
     static Event create(Map<?, ?> event) {

@@ -20,6 +20,9 @@ import java.util.Map;
 import java.util.Objects;
 import org.apache.commons.collections4.MapUtils;
 
+/**
+ * Describes the state of a relationship before or after a change.
+ */
 public class RelationshipState extends State {
 
     public RelationshipState(Map<String, Object> properties) {

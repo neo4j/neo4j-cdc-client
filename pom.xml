@@ -398,6 +398,7 @@
                 <configuration>
                     <source>${java.version}</source>
                     <target>${java.version}</target>
+                    <compilerArgument>-Werror</compilerArgument>
                 </configuration>
             </plugin>
         </plugins>
@@ -413,6 +414,9 @@
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-javadoc-plugin</artifactId>
+                        <configuration>
+                            <excludePackageNames>org.neo4j.cdc.client.pattern</excludePackageNames>
+                        </configuration>
                         <executions>
                             <execution>
                                 <id>attach-javadocs</id>

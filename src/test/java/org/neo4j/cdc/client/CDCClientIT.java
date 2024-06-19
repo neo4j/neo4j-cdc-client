@@ -28,7 +28,6 @@ import org.junit.jupiter.api.Test;
 import org.neo4j.cdc.client.model.*;
 import org.neo4j.cdc.client.selector.EntitySelector;
 import org.neo4j.cdc.client.selector.NodeSelector;
-import org.neo4j.cdc.client.selector.RelationshipNodeSelector;
 import org.neo4j.cdc.client.selector.RelationshipSelector;
 import org.neo4j.driver.*;
 import org.neo4j.driver.exceptions.FatalDiscoveryException;
@@ -147,6 +146,20 @@ public abstract class CDCClientIT {
     }
 
     @Test
+    void metadataShouldNotHaveAdditionalEntries() {
+        CDCClient client = new CDCClient(driver(), Duration.ZERO);
+
+        try (var session = driver().session()) {
+            session.run("CREATE (p:Person)", emptyMap()).consume();
+
+            StepVerifier.create(client.query(current))
+                    .assertNext(event -> assertThat(event).satisfies(e -> assertThat(e.getMetadata())
+                            .satisfies(m -> assertThat(m.getAdditionalEntries()).isEmpty())))
+                    .verifyComplete();
+        }
+    }
+
+    @Test
     void nodeChangesCanBeQueried() {
         CDCClient client = new CDCClient(driver(), Duration.ZERO);
 
@@ -174,8 +187,8 @@ public abstract class CDCClientIT {
                                 assertThat(c.getSeq()).isNotNull();
                             })
                             .satisfies(e -> assertThat(e.getMetadata())
-                                    .satisfies(m -> assertThat(m.getAdditionalEntries())
-                                            .isEqualTo(defaultExpectedAdditionalEntries()))
+                                    .satisfies(m ->
+                                            assertThat(m.getAdditionalEntries()).isEmpty())
                                     .satisfies(m ->
                                             assertThat(m.getAuthenticatedUser()).isEqualTo("neo4j"))
                                     .satisfies(m ->
@@ -255,8 +268,8 @@ public abstract class CDCClientIT {
                                 assertThat(c.getSeq()).isNotNull();
                             })
                             .satisfies(e -> assertThat(e.getMetadata())
-                                    .satisfies(m -> assertThat(m.getAdditionalEntries())
-                                            .isEqualTo(defaultExpectedAdditionalEntries()))
+                                    .satisfies(m ->
+                                            assertThat(m.getAdditionalEntries()).isEmpty())
                                     .satisfies(m ->
                                             assertThat(m.getAuthenticatedUser()).isEqualTo("neo4j"))
                                     .satisfies(m ->
@@ -347,7 +360,10 @@ public abstract class CDCClientIT {
             StepVerifier.create(new CDCClient(
                                     driver(),
                                     Duration.ZERO,
-                                    new NodeSelector(EntityOperation.CREATE, emptySet(), Set.of("Place")))
+                                    NodeSelector.builder()
+                                            .withOperation(EntityOperation.CREATE)
+                                            .withLabels(Set.of("Place"))
+                                            .build())
                             .query(current))
                     .assertNext(n -> assertThat(n).extracting("event.elementId").isEqualTo(place))
                     .verifyComplete();
@@ -355,8 +371,13 @@ public abstract class CDCClientIT {
             StepVerifier.create(new CDCClient(
                                     driver(),
                                     Duration.ZERO,
-                                    new NodeSelector(EntityOperation.CREATE, emptySet(), Set.of("Place")),
-                                    new NodeSelector(null, emptySet(), Set.of("Person")))
+                                    NodeSelector.builder()
+                                            .withOperation(EntityOperation.CREATE)
+                                            .withLabels(Set.of("Place"))
+                                            .build(),
+                                    NodeSelector.builder()
+                                            .withLabels(Set.of("Person"))
+                                            .build())
                             .query(current))
                     .assertNext(n -> assertThat(n).extracting("event.elementId").isEqualTo(person1))
                     .assertNext(n -> assertThat(n).extracting("event.elementId").isEqualTo(person2))
@@ -364,7 +385,11 @@ public abstract class CDCClientIT {
                     .verifyComplete();
 
             StepVerifier.create(new CDCClient(
-                                    driver(), Duration.ZERO, new RelationshipSelector(null, emptySet(), "BORN_IN"))
+                                    driver(),
+                                    Duration.ZERO,
+                                    RelationshipSelector.builder()
+                                            .withType("BORN_IN")
+                                            .build())
                             .query(current))
                     .assertNext(n -> assertThat(n).extracting("event.elementId").isEqualTo(bornIn))
                     .verifyComplete();
@@ -372,8 +397,12 @@ public abstract class CDCClientIT {
             StepVerifier.create(new CDCClient(
                                     driver(),
                                     Duration.ZERO,
-                                    new NodeSelector(null, emptySet(), Set.of("Place")),
-                                    new RelationshipSelector(null, emptySet(), "BORN_IN"))
+                                    NodeSelector.builder()
+                                            .withLabels(Set.of("Place"))
+                                            .build(),
+                                    RelationshipSelector.builder()
+                                            .withType("BORN_IN")
+                                            .build())
                             .query(current))
                     .assertNext(n -> assertThat(n).extracting("event.elementId").isEqualTo(place))
                     .assertNext(n -> assertThat(n).extracting("event.elementId").isEqualTo(bornIn))
@@ -465,13 +494,11 @@ public abstract class CDCClientIT {
             StepVerifier.create(new CDCClient(
                                     driver(),
                                     Duration.ZERO,
-                                    new NodeSelector(
-                                            EntityOperation.CREATE,
-                                            emptySet(),
-                                            Set.of("Place"),
-                                            emptyMap(),
-                                            Set.of("*"),
-                                            emptySet()))
+                                    NodeSelector.builder()
+                                            .withOperation(EntityOperation.CREATE)
+                                            .withLabels(Set.of("Place"))
+                                            .includingProperties(Set.of("*"))
+                                            .build())
                             .query(current))
                     .assertNext(n -> assertThat(n)
                             .satisfies(e ->
@@ -486,13 +513,11 @@ public abstract class CDCClientIT {
             StepVerifier.create(new CDCClient(
                                     driver(),
                                     Duration.ZERO,
-                                    new NodeSelector(
-                                            EntityOperation.CREATE,
-                                            emptySet(),
-                                            Set.of("Place"),
-                                            emptyMap(),
-                                            Set.of("id", "name"),
-                                            emptySet()))
+                                    NodeSelector.builder()
+                                            .withOperation(EntityOperation.CREATE)
+                                            .withLabels(Set.of("Place"))
+                                            .includingProperties(Set.of("id", "name"))
+                                            .build())
                             .query(current))
                     .assertNext(n -> assertThat(n)
                             .satisfies(e ->
@@ -507,13 +532,11 @@ public abstract class CDCClientIT {
             StepVerifier.create(new CDCClient(
                                     driver(),
                                     Duration.ZERO,
-                                    new NodeSelector(
-                                            EntityOperation.CREATE,
-                                            emptySet(),
-                                            Set.of("Place"),
-                                            emptyMap(),
-                                            emptySet(),
-                                            Set.of("population")))
+                                    NodeSelector.builder()
+                                            .withOperation(EntityOperation.CREATE)
+                                            .withLabels(Set.of("Place"))
+                                            .excludingProperties(Set.of("population"))
+                                            .build())
                             .query(current))
                     .assertNext(n -> assertThat(n)
                             .satisfies(e ->
@@ -528,20 +551,14 @@ public abstract class CDCClientIT {
             StepVerifier.create(new CDCClient(
                                     driver(),
                                     Duration.ZERO,
-                                    new NodeSelector(
-                                            null,
-                                            emptySet(),
-                                            Set.of("Place"),
-                                            emptyMap(),
-                                            emptySet(),
-                                            Set.of("population")),
-                                    new NodeSelector(
-                                            null,
-                                            emptySet(),
-                                            Set.of("Person"),
-                                            emptyMap(),
-                                            Set.of("id", "name", "surname"),
-                                            emptySet()))
+                                    NodeSelector.builder()
+                                            .withLabels(Set.of("Place"))
+                                            .excludingProperties(Set.of("population"))
+                                            .build(),
+                                    NodeSelector.builder()
+                                            .withLabels(Set.of("Person"))
+                                            .includingProperties(Set.of("id", "name", "surname"))
+                                            .build())
                             .query(current))
                     .assertNext(n -> assertThat(n)
                             .satisfies(e ->
@@ -572,20 +589,16 @@ public abstract class CDCClientIT {
             StepVerifier.create(new CDCClient(
                                     driver(),
                                     Duration.ZERO,
-                                    new NodeSelector(
-                                            null,
-                                            emptySet(),
-                                            Set.of("Person"),
-                                            Map.of("id", 1L),
-                                            emptySet(),
-                                            Set.of("gender")),
-                                    new NodeSelector(
-                                            null,
-                                            emptySet(),
-                                            Set.of("Person"),
-                                            Map.of("id", 2L),
-                                            Set.of("id", "name", "surname"),
-                                            emptySet()))
+                                    NodeSelector.builder()
+                                            .withLabels(Set.of("Person"))
+                                            .withKey(Map.of("id", 1L))
+                                            .excludingProperties(Set.of("gender"))
+                                            .build(),
+                                    NodeSelector.builder()
+                                            .withLabels(Set.of("Person"))
+                                            .withKey(Map.of("id", 2L))
+                                            .includingProperties(Set.of("id", "name", "surname"))
+                                            .build())
                             .query(current))
                     .assertNext(n -> assertThat(n)
                             .satisfies(e ->
@@ -608,16 +621,10 @@ public abstract class CDCClientIT {
             StepVerifier.create(new CDCClient(
                                     driver(),
                                     Duration.ZERO,
-                                    new RelationshipSelector(
-                                            null,
-                                            emptySet(),
-                                            "BORN_IN",
-                                            new RelationshipNodeSelector(),
-                                            new RelationshipNodeSelector(),
-                                            emptyMap(),
-                                            Set.of("*"),
-                                            emptySet(),
-                                            emptyMap()))
+                                    RelationshipSelector.builder()
+                                            .withType("BORN_IN")
+                                            .includingProperties(Set.of("*"))
+                                            .build())
                             .query(current))
                     .assertNext(n -> assertThat(n)
                             .satisfies(e ->
@@ -645,16 +652,10 @@ public abstract class CDCClientIT {
             StepVerifier.create(new CDCClient(
                                     driver(),
                                     Duration.ZERO,
-                                    new RelationshipSelector(
-                                            null,
-                                            emptySet(),
-                                            "BORN_IN",
-                                            new RelationshipNodeSelector(),
-                                            new RelationshipNodeSelector(),
-                                            emptyMap(),
-                                            Set.of("on"),
-                                            emptySet(),
-                                            emptyMap()))
+                                    RelationshipSelector.builder()
+                                            .withType("BORN_IN")
+                                            .includingProperties(Set.of("on"))
+                                            .build())
                             .query(current))
                     .assertNext(n -> assertThat(n)
                             .satisfies(e ->
@@ -683,26 +684,16 @@ public abstract class CDCClientIT {
             StepVerifier.create(new CDCClient(
                                     driver(),
                                     Duration.ZERO,
-                                    new RelationshipSelector(
-                                            EntityOperation.CREATE,
-                                            emptySet(),
-                                            "BORN_IN",
-                                            new RelationshipNodeSelector(),
-                                            new RelationshipNodeSelector(),
-                                            emptyMap(),
-                                            emptySet(),
-                                            Set.of("on"),
-                                            emptyMap()),
-                                    new RelationshipSelector(
-                                            EntityOperation.CREATE,
-                                            emptySet(),
-                                            "BORN_IN",
-                                            new RelationshipNodeSelector(),
-                                            new RelationshipNodeSelector(),
-                                            emptyMap(),
-                                            emptySet(),
-                                            Set.of("at"),
-                                            emptyMap()))
+                                    RelationshipSelector.builder()
+                                            .withOperation(EntityOperation.CREATE)
+                                            .withType("BORN_IN")
+                                            .excludingProperties(Set.of("on"))
+                                            .build(),
+                                    RelationshipSelector.builder()
+                                            .withOperation(EntityOperation.CREATE)
+                                            .withType("BORN_IN")
+                                            .excludingProperties(Set.of("at"))
+                                            .build())
                             .query(current))
                     .assertNext(n -> assertThat(n)
                             .satisfies(e ->
@@ -752,10 +743,9 @@ public abstract class CDCClientIT {
         // verify authenticatedUser = test
         StepVerifier.create(new CDCClient(
                                 driver(),
-                                new EntitySelector(
-                                        null,
-                                        emptySet(),
-                                        Map.of(EntitySelector.METADATA_KEY_AUTHENTICATED_USER, "test")))
+                                EntitySelector.builder()
+                                        .withAuthenticatedUser("test")
+                                        .build())
                         .query(current))
                 .recordWith(ArrayList::new)
                 .thenConsumeWhile(x -> true)
@@ -769,10 +759,9 @@ public abstract class CDCClientIT {
         // verify authenticatedUser = neo4j
         StepVerifier.create(new CDCClient(
                                 driver(),
-                                new EntitySelector(
-                                        null,
-                                        emptySet(),
-                                        Map.of(EntitySelector.METADATA_KEY_AUTHENTICATED_USER, "neo4j")))
+                                EntitySelector.builder()
+                                        .withAuthenticatedUser("neo4j")
+                                        .build())
                         .query(current))
                 .recordWith(ArrayList::new)
                 .thenConsumeWhile(x -> true)
@@ -786,8 +775,9 @@ public abstract class CDCClientIT {
         // verify executingUser = neo4j
         StepVerifier.create(new CDCClient(
                                 driver(),
-                                new EntitySelector(
-                                        null, emptySet(), Map.of(EntitySelector.METADATA_KEY_EXECUTING_USER, "neo4j")))
+                                EntitySelector.builder()
+                                        .withExecutingUser("neo4j")
+                                        .build())
                         .query(current))
                 .recordWith(ArrayList::new)
                 .thenConsumeWhile(x -> true)
@@ -801,8 +791,9 @@ public abstract class CDCClientIT {
         // verify executingUser = test
         StepVerifier.create(new CDCClient(
                                 driver(),
-                                new EntitySelector(
-                                        null, emptySet(), Map.of(EntitySelector.METADATA_KEY_EXECUTING_USER, "test")))
+                                EntitySelector.builder()
+                                        .withExecutingUser("test")
+                                        .build())
                         .query(current))
                 .recordWith(ArrayList::new)
                 .thenConsumeWhile(x -> true)
@@ -816,14 +807,10 @@ public abstract class CDCClientIT {
         // verify authenticatedUser = test, executingUser = neo4j
         StepVerifier.create(new CDCClient(
                                 driver(),
-                                new EntitySelector(
-                                        null,
-                                        emptySet(),
-                                        Map.of(
-                                                EntitySelector.METADATA_KEY_AUTHENTICATED_USER,
-                                                "test",
-                                                EntitySelector.METADATA_KEY_EXECUTING_USER,
-                                                "neo4j")))
+                                EntitySelector.builder()
+                                        .withAuthenticatedUser("test")
+                                        .withExecutingUser("neo4j")
+                                        .build())
                         .query(current))
                 .recordWith(ArrayList::new)
                 .thenConsumeWhile(x -> true)
@@ -868,10 +855,9 @@ public abstract class CDCClientIT {
 
         StepVerifier.create(new CDCClient(
                                 driver(),
-                                new EntitySelector(
-                                        null,
-                                        emptySet(),
-                                        Map.of(EntitySelector.METADATA_KEY_TX_METADATA, Map.of("app", "Test"))))
+                                EntitySelector.builder()
+                                        .withTxMetadata(Map.of("app", "Test"))
+                                        .build())
                         .query(current))
                 .recordWith(ArrayList::new)
                 .thenConsumeWhile(x -> true)
@@ -884,10 +870,9 @@ public abstract class CDCClientIT {
 
         StepVerifier.create(new CDCClient(
                                 driver(),
-                                new EntitySelector(
-                                        null,
-                                        emptySet(),
-                                        Map.of(EntitySelector.METADATA_KEY_TX_METADATA, Map.of("app", "Other"))))
+                                EntitySelector.builder()
+                                        .withTxMetadata(Map.of("app", "Other"))
+                                        .build())
                         .query(current))
                 .recordWith(ArrayList::new)
                 .thenConsumeWhile(x -> true)
@@ -901,12 +886,9 @@ public abstract class CDCClientIT {
 
         StepVerifier.create(new CDCClient(
                                 driver(),
-                                new EntitySelector(
-                                        null,
-                                        emptySet(),
-                                        Map.of(
-                                                EntitySelector.METADATA_KEY_TX_METADATA,
-                                                Map.of("app", "Other", "appUser", "test"))))
+                                EntitySelector.builder()
+                                        .withTxMetadata(Map.of("app", "Other", "appUser", "test"))
+                                        .build())
                         .query(current))
                 .recordWith(ArrayList::new)
                 .thenConsumeWhile(x -> true)

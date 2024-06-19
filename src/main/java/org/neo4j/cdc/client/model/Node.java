@@ -21,6 +21,9 @@ import java.util.Map;
 import java.util.Objects;
 import org.apache.commons.collections4.MapUtils;
 
+/**
+ * Describes start or end node for a relationship.
+ */
 public class Node {
 
     private final String elementId;
@@ -33,14 +36,30 @@ public class Node {
         this.keys = keys;
     }
 
+    /**
+     * The elementId of the node.
+     *
+     * @return element id
+     */
     public String getElementId() {
         return this.elementId;
     }
 
+    /**
+     * The keys identifying the node, grouped per label.
+     * This requires key constraints defined on the changed entities.
+     *
+     * @return map of labels to list of key properties on that label
+     */
     public Map<String, List<Map<String, Object>>> getKeys() {
         return this.keys;
     }
 
+    /**
+     * List of labels on the node.
+     *
+     * @return labels
+     */
     public List<String> getLabels() {
         return this.labels;
     }

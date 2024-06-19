@@ -18,6 +18,9 @@ package org.neo4j.cdc.client.model;
 
 import java.util.Objects;
 
+/**
+ * Change event.
+ */
 public class ChangeEvent {
 
     private final ChangeIdentifier id;
@@ -34,22 +37,52 @@ public class ChangeEvent {
         this.event = Objects.requireNonNull(event);
     }
 
+    /**
+     * A unique change identifier that identifies this change record.
+     * It can be used to query changes from this change onward.
+     *
+     * @return change identifier
+     */
     public ChangeIdentifier getId() {
         return this.id;
     }
 
+    /**
+     * A number identifying which transaction the change happened in, unique in combination with seq.
+     * Transaction identifiers are not continuous (some transactions, such as system and schema commands,
+     * are not recorded in change data capture and cause gaps in the transaction identifiers).
+     *
+     * @return transaction id
+     */
     public Long getTxId() {
         return this.txId;
     }
 
+    /**
+     * A number used for ordering changes that happened in the same transaction.
+     * The order of changes observed in the output does not necessarily correspond to the order in which
+     * changes were applied during the transaction.
+     *
+     * @return sequence
+     */
     public Integer getSeq() {
         return this.seq;
     }
 
+    /**
+     * Other useful information about the transaction.
+     *
+     * @return metadata
+     */
     public Metadata getMetadata() {
         return this.metadata;
     }
 
+    /**
+     * Details about the actual data change.
+     *
+     * @return event
+     */
     public Event getEvent() {
         return this.event;
     }

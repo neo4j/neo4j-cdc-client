@@ -18,8 +18,17 @@ package org.neo4j.cdc.client.model;
 
 import java.util.Objects;
 
+/**
+ * Type of event.
+ */
 public enum EventType {
+    /**
+     * Describes a node change event.
+     */
     NODE("n"),
+    /**
+     * Describes a relationship change event.
+     */
     RELATIONSHIP("r");
 
     public final String shorthand;
