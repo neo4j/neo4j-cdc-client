@@ -35,9 +35,6 @@ import org.testcontainers.containers.Neo4jContainer;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import reactor.test.StepVerifier;
 
-/**
- * @author Gerrit Meier
- */
 @Testcontainers
 public abstract class CDCClientIT {
 

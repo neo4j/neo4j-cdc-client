@@ -21,8 +21,6 @@ import org.neo4j.driver.SessionConfig;
 /**
  * The implementation can provide a session config that
  * will be called each time before a session gets created.
- *
- * @author Gerrit Meier
  */
 @FunctionalInterface
 public interface SessionConfigSupplier {

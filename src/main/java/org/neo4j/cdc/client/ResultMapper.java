@@ -23,9 +23,6 @@ import org.neo4j.cdc.client.model.ChangeIdentifier;
 import org.neo4j.cdc.client.model.Event;
 import org.neo4j.cdc.client.model.Metadata;
 
-/**
- * @author Gerrit Meier
- */
 public final class ResultMapper {
     private static final String ID_FIELD = "id";
     private static final String TX_ID_FIELD = "txId";

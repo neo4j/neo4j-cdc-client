@@ -29,9 +29,6 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.neo4j.cdc.client.model.*;
 
-/**
- * @author Gerrit Meier
- */
 public class ResultMapperTest {
 
     @Test
