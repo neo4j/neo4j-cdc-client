@@ -17,7 +17,7 @@
 /**
  * An internal client implementation for Neo4j Change Data Capture feature.
  * <p>
- * <strong>This is an INTERNAL library designed to be used inside official Neo4j connectors and no guarantees
+ * <strong>This is an INTERNAL library designed to be used inside official Neo4j connectors. No guarantees
  * are made regarding API stability and support.</strong>
  *
  * <p>
