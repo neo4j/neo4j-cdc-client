@@ -63,7 +63,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <reactive-streams.version>1.0.4</reactive-streams.version>
         <reactor.version>3.6.7</reactor.version>
-        <slf4j-api.version>1.7.36</slf4j-api.version>
+        <slf4j-api.version>2.0.13</slf4j-api.version>
         <sortpom-maven-plugin.version>4.0.0</sortpom-maven-plugin.version>
         <spotless-maven-plugin.version>2.43.0</spotless-maven-plugin.version>
         <testcontainers.version>1.19.8</testcontainers.version>
