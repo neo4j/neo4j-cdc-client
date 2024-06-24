@@ -1,6 +1,6 @@
 # CDC Client Library for Neo4j
 
-**This is an INTERNAL library designed to be used inside official Neo4j connectors. No guarantees are made regarding API
+**This is an INTERNAL library designed to be used inside official Neo4j connectors. No guarantees are made regarding its API
 stability and support.**
 
 ## Adding the package as a dependency
