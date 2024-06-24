@@ -1,10 +1,12 @@
 # CDC Client Library for Neo4j
 
-The project provides a CDC client library to be used among source connectors built by Neo4j.
+**This is an INTERNAL library designed to be used inside official Neo4j connectors. No guarantees are made regarding API
+stability and support.**
 
 ## Adding the package as a dependency
 
-Currently, this library is deployed to Github Packages, so you need to configure your maven repositories accordingly.
+Currently, this library is published to Maven Central, but is released for Neo4j internal use cases and should not be
+considered as a supported product.
 
 * Add dependency
 
@@ -15,31 +17,6 @@ Currently, this library is deployed to Github Packages, so you need to configure
     <artifactId>cdc</artifactId>
     <version>${cdc.version}</version>
 </dependency>
-```
-
-* Add repository
-
-```xml
-
-<repositories>
-    <repository>
-        <id>github</id>
-        <url>https://maven.pkg.github.com/neo4j/neo4j-cdc-client</url>
-    </repository>
-</repositories>
-```
-
-* Add access credentials
-  Create a personal access token in Github and give it a permission to read packages.
-  Then add the following content into `settings/servers` inside ~/.m2/settings.xml.
-
-```xml
-
-<server>
-    <id>github</id>
-    <username>your-github-user-name</username>
-    <password>your-personal-access-token</password>
-</server>
 ```
 
 ## Usage
@@ -118,16 +95,23 @@ class Main {
         var driver = GraphDatabase.driver("neo4j://localhost");
         var client = new CDCClient(
                 driver,
-                new EntitySelector(EntityOperation.DELETE), // any delete operation on nodes or relationships
-                new NodeSelector(null, emptySet(), Set.of("Person")), // any operation on nodes with Person label
-                new NodeSelector(null, emptySet(), Set.of("Company")), // any operation on nodes with Company label
-                new RelationshipSelector(
-                        null,
-                        emptySet(),
-                        "WORKS_FOR",
-                        new RelationshipNodeSelector(Set.of("Person")),
-                        new RelationshipNodeSelector(
-                                Set.of("Company")))); // any operation on relationships of type WORKS_FOR between nodes of `Person` and `Company` labels
+                EntitySelector.builder()
+                        .withOperation(EntityOperation.DELETE)
+                        .build(), // any delete operation on nodes or relationships
+                NodeSelector.builder().withLabels(Set.of("Person")).build(), // any operation on nodes with Person label
+                NodeSelector.builder()
+                        .withLabels(Set.of("Company"))
+                        .build(), // any operation on nodes with Company label
+                RelationshipSelector.builder()
+                        .withType("WORKS_FOR")
+                        .withStart(RelationshipNodeSelector.builder()
+                                .withLabels(Set.of("Person"))
+                                .build())
+                        .withEnd(RelationshipNodeSelector.builder()
+                                .withLabels(Set.of("Company"))
+                                .build())
+                        .build()); // any operation on relationships of type WORKS_FOR between nodes of `Person` and
+        // `Company` labels
 
         // grab a change identifier to listen changes from.
         // could be retrieved by CDCClient#earliest or CDCClient#current methods.
@@ -176,22 +160,6 @@ class Main {
 ```
 
 ## Development & Contributions
-
-### Internal Maven Repository
-
-For the build to succeed, it needs the package [build-resources](https://github.com/neo4j/connectors-build-resources)
-that is being published to Github Packages.
-In order to access it, create a personal access token in Github and give it a permission to read packages.
-Then add the following content into `settings/servers` inside ~/.m2/settings.xml.
-
-```xml
-
-<server>
-    <id>github</id>
-    <username>your-github-user-name</username>
-    <password>your-personal-access-token</password>
-</server>
-```
 
 ### Build locally
 
