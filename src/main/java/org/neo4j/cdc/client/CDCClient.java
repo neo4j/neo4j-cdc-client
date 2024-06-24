@@ -146,13 +146,16 @@ public class CDCClient implements CDCService {
                 .doOnComplete(() -> log.trace("subscription to cdc query completed"));
     }
 
-    @Override
     public Flux<ChangeEvent> stream(ChangeIdentifier from) {
         var cursor = new AtomicReference<>(from);
 
         var query = Flux.usingWhen(
                 Mono.fromSupplier(() -> driver.rxSession(sessionConfigSupplier.sessionConfig())),
                 (RxSession session) -> Flux.from(session.readTransaction(tx -> {
+                    var current = Mono.from(tx.run("CALL cdc.current()").records())
+                            .map(MapAccessor::asMap)
+                            .map(ResultMapper::parseChangeIdentifier);
+
                     var params = Map.of(
                             "from",
                             cursor.get().getId(),
@@ -162,7 +165,13 @@ public class CDCClient implements CDCService {
                     log.trace("running cdc.query using parameters {}", params);
                     RxResult result = tx.run(CDC_QUERY_STATEMENT, params);
 
-                    return Flux.from(result.records()).map(MapAccessor::asMap).map(ResultMapper::parseChangeEvent);
+                    return current.flatMapMany(changeId -> Flux.from(result.records())
+                            .map(MapAccessor::asMap)
+                            .map(ResultMapper::parseChangeEvent)
+                            .switchIfEmpty(Flux.defer(() -> {
+                                cursor.set(changeId);
+                                return Flux.empty();
+                            })));
                 })),
                 RxSession::close);
 
