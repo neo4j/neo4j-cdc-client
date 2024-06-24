@@ -64,7 +64,7 @@
         <reactive-streams.version>1.0.4</reactive-streams.version>
         <reactor.version>3.6.6</reactor.version>
         <slf4j-api.version>1.7.36</slf4j-api.version>
-        <sortpom-maven-plugin.version>3.3.0</sortpom-maven-plugin.version>
+        <sortpom-maven-plugin.version>4.0.0</sortpom-maven-plugin.version>
         <spotless-maven-plugin.version>2.38.0</spotless-maven-plugin.version>
         <testcontainers.version>1.19.8</testcontainers.version>
     </properties>
