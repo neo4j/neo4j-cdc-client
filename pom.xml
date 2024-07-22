@@ -39,7 +39,7 @@
         <assertj-core.version>3.26.0</assertj-core.version>
         <build-resources.version>2024-07.1</build-resources.version>
         <commons-collections4.version>4.4</commons-collections4.version>
-        <commons-lang3.version>3.14.0</commons-lang3.version>
+        <commons-lang3.version>3.15.0</commons-lang3.version>
         <java.version>11</java.version>
         <jreleaser-maven-plugin.version>1.13.1</jreleaser-maven-plugin.version>
         <junit-jupiter.version>5.10.3</junit-jupiter.version>
