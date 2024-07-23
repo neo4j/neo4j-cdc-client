@@ -23,6 +23,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import java.time.*;
 import java.util.*;
 import org.assertj.core.api.InstanceOfAssertFactories;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.neo4j.cdc.client.model.*;
@@ -32,42 +34,57 @@ import org.neo4j.cdc.client.selector.RelationshipSelector;
 import org.neo4j.driver.*;
 import org.neo4j.driver.exceptions.FatalDiscoveryException;
 import org.testcontainers.containers.Neo4jContainer;
+import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import reactor.test.StepVerifier;
 
 @Testcontainers
-public abstract class CDCClientIT {
+public class CDCClientIT {
 
-    abstract Driver driver();
+    private static final String NEO4J_VERSION = "5";
 
-    abstract Neo4jContainer<?> neo4j();
+    @SuppressWarnings("resource")
+    @Container
+    private static final Neo4jContainer<?> neo4j = new Neo4jContainer<>("neo4j:" + NEO4J_VERSION + "-enterprise")
+            .withEnv("NEO4J_ACCEPT_LICENSE_AGREEMENT", "yes")
+            .withAdminPassword("passw0rd");
 
-    abstract Map<String, Object> defaultExpectedAdditionalEntries();
+    private static Driver driver;
+
+    @BeforeAll
+    static void setup() {
+        driver = GraphDatabase.driver(neo4j.getBoltUrl(), AuthTokens.basic("neo4j", "passw0rd"));
+    }
+
+    @AfterAll
+    static void cleanup() {
+        driver.close();
+    }
 
     private ChangeIdentifier current;
 
     @BeforeEach
     void reset() {
-        try (var session = driver().session(SessionConfig.forDatabase("system"))) {
+        try (var session = driver.session(SessionConfig.forDatabase("system"))) {
             session.run(
                             "CREATE OR REPLACE DATABASE $db OPTIONS {txLogEnrichment: $mode} WAIT",
                             Map.of("db", "neo4j", "mode", "FULL"))
                     .consume();
         }
 
-        try (var session = driver().session()) {
+        try (var session = driver.session()) {
             current = currentChangeId(session);
         }
     }
 
     private static ChangeIdentifier currentChangeId(Session session) {
         return new ChangeIdentifier(
-                session.run("CALL cdc.current()").single().get(0).asString());
+                session.run("CALL db.cdc.current()").single().get(0).asString());
     }
 
     @Test
     void earliest() {
-        var client = new CDCClient(driver(), Duration.ZERO);
+        var client = new CDCClient(driver, Duration.ZERO);
 
         StepVerifier.create(client.earliest())
                 .assertNext(cv -> assertNotNull(cv.getId()))
@@ -76,7 +93,7 @@ public abstract class CDCClientIT {
 
     @Test
     void current() {
-        var client = new CDCClient(driver(), Duration.ZERO);
+        var client = new CDCClient(driver, Duration.ZERO);
 
         StepVerifier.create(client.current())
                 .assertNext(cv -> assertNotNull(cv.getId()))
@@ -85,9 +102,9 @@ public abstract class CDCClientIT {
 
     @Test
     void changesCanBeQueried() {
-        var client = new CDCClient(driver(), Duration.ZERO);
+        var client = new CDCClient(driver, Duration.ZERO);
 
-        try (Session session = driver().session()) {
+        try (Session session = driver.session()) {
             session.run("CREATE ()").consume();
         }
 
@@ -99,7 +116,7 @@ public abstract class CDCClientIT {
     @Test
     void respectsSessionConfigSupplier() {
         var client = new CDCClient(
-                driver(),
+                driver,
                 () -> SessionConfig.builder().withDatabase("unknownDatabase").build());
         StepVerifier.create(client.current())
                 .expectError(FatalDiscoveryException.class)
@@ -108,7 +125,7 @@ public abstract class CDCClientIT {
 
     @Test
     void shouldReturnCypherTypesWithoutConversion() {
-        var client = new CDCClient(driver(), Duration.ZERO);
+        var client = new CDCClient(driver, Duration.ZERO);
 
         var props = new HashMap<String, Object>();
         props.put("bool", true);
@@ -125,7 +142,7 @@ public abstract class CDCClientIT {
         props.put("zoned_datetime", ZonedDateTime.of(1990, 5, 1, 23, 59, 59, 0, ZoneId.of("UTC")));
         props.put("zoned_time", OffsetTime.of(23, 59, 59, 0, ZoneOffset.ofHours(1)));
 
-        try (Session session = driver().session()) {
+        try (Session session = driver.session()) {
             session.run("CREATE (a) SET a = $props", Map.of("props", props)).consume();
         }
 
@@ -144,9 +161,9 @@ public abstract class CDCClientIT {
 
     @Test
     void metadataShouldNotHaveAdditionalEntries() {
-        CDCClient client = new CDCClient(driver(), Duration.ZERO);
+        CDCClient client = new CDCClient(driver, Duration.ZERO);
 
-        try (var session = driver().session()) {
+        try (var session = driver.session()) {
             session.run("CREATE (p:Person)", emptyMap()).consume();
 
             StepVerifier.create(client.query(current))
@@ -158,9 +175,9 @@ public abstract class CDCClientIT {
 
     @Test
     void nodeChangesCanBeQueried() {
-        CDCClient client = new CDCClient(driver(), Duration.ZERO);
+        CDCClient client = new CDCClient(driver, Duration.ZERO);
 
-        try (var session = driver().session()) {
+        try (var session = driver.session()) {
             session.run("CREATE CONSTRAINT FOR (p:Person) REQUIRE (p.first_name, p.last_name) IS NODE KEY")
                     .consume();
 
@@ -231,9 +248,9 @@ public abstract class CDCClientIT {
 
     @Test
     void relationshipChangesCanBeQueried() {
-        var client = new CDCClient(driver(), Duration.ZERO);
+        var client = new CDCClient(driver, Duration.ZERO);
 
-        try (var session = driver().session()) {
+        try (var session = driver.session()) {
             session.run("CREATE CONSTRAINT FOR (p:Person) REQUIRE (p.id) IS NODE KEY")
                     .consume();
             session.run("CREATE CONSTRAINT FOR (p:Place) REQUIRE (p.id) IS NODE KEY")
@@ -315,7 +332,7 @@ public abstract class CDCClientIT {
     @Test
     void selectorsArePassedToServer() {
 
-        try (var session = driver().session()) {
+        try (var session = driver.session()) {
             session.run("CREATE CONSTRAINT FOR (p:Person) REQUIRE (p.id) IS NODE KEY")
                     .consume();
             session.run("CREATE CONSTRAINT FOR (p:Place) REQUIRE (p.id) IS NODE KEY")
@@ -347,7 +364,7 @@ public abstract class CDCClientIT {
                     .get(0)
                     .asString();
 
-            StepVerifier.create(new CDCClient(driver(), Duration.ZERO).query(current))
+            StepVerifier.create(new CDCClient(driver, Duration.ZERO).query(current))
                     .assertNext(n -> assertThat(n).extracting("event.elementId").isEqualTo(person1))
                     .assertNext(n -> assertThat(n).extracting("event.elementId").isEqualTo(person2))
                     .assertNext(n -> assertThat(n).extracting("event.elementId").isEqualTo(place))
@@ -355,7 +372,7 @@ public abstract class CDCClientIT {
                     .verifyComplete();
 
             StepVerifier.create(new CDCClient(
-                                    driver(),
+                                    driver,
                                     Duration.ZERO,
                                     NodeSelector.builder()
                                             .withOperation(EntityOperation.CREATE)
@@ -366,7 +383,7 @@ public abstract class CDCClientIT {
                     .verifyComplete();
 
             StepVerifier.create(new CDCClient(
-                                    driver(),
+                                    driver,
                                     Duration.ZERO,
                                     NodeSelector.builder()
                                             .withOperation(EntityOperation.CREATE)
@@ -382,7 +399,7 @@ public abstract class CDCClientIT {
                     .verifyComplete();
 
             StepVerifier.create(new CDCClient(
-                                    driver(),
+                                    driver,
                                     Duration.ZERO,
                                     RelationshipSelector.builder()
                                             .withType("BORN_IN")
@@ -392,7 +409,7 @@ public abstract class CDCClientIT {
                     .verifyComplete();
 
             StepVerifier.create(new CDCClient(
-                                    driver(),
+                                    driver,
                                     Duration.ZERO,
                                     NodeSelector.builder()
                                             .withLabels(Set.of("Place"))
@@ -410,7 +427,7 @@ public abstract class CDCClientIT {
     @Test
     void selectorsDoFilteringCorrectly() {
 
-        try (var session = driver().session()) {
+        try (var session = driver.session()) {
             session.run("CREATE CONSTRAINT FOR (p:Person) REQUIRE (p.id) IS NODE KEY")
                     .consume();
             session.run("CREATE CONSTRAINT FOR (p:Place) REQUIRE (p.id) IS NODE KEY")
@@ -480,7 +497,7 @@ public abstract class CDCClientIT {
                             Map.of("bornIn", bornIn, "hospital", "state hospital", "doctor", "doctor who"))
                     .consume();
 
-            StepVerifier.create(new CDCClient(driver(), Duration.ZERO).query(current))
+            StepVerifier.create(new CDCClient(driver, Duration.ZERO).query(current))
                     .assertNext(n -> assertThat(n).extracting("event.elementId").isEqualTo(person1))
                     .assertNext(n -> assertThat(n).extracting("event.elementId").isEqualTo(person2))
                     .assertNext(n -> assertThat(n).extracting("event.elementId").isEqualTo(place))
@@ -489,7 +506,7 @@ public abstract class CDCClientIT {
                     .verifyComplete();
 
             StepVerifier.create(new CDCClient(
-                                    driver(),
+                                    driver,
                                     Duration.ZERO,
                                     NodeSelector.builder()
                                             .withOperation(EntityOperation.CREATE)
@@ -508,7 +525,7 @@ public abstract class CDCClientIT {
                     .verifyComplete();
 
             StepVerifier.create(new CDCClient(
-                                    driver(),
+                                    driver,
                                     Duration.ZERO,
                                     NodeSelector.builder()
                                             .withOperation(EntityOperation.CREATE)
@@ -527,7 +544,7 @@ public abstract class CDCClientIT {
                     .verifyComplete();
 
             StepVerifier.create(new CDCClient(
-                                    driver(),
+                                    driver,
                                     Duration.ZERO,
                                     NodeSelector.builder()
                                             .withOperation(EntityOperation.CREATE)
@@ -546,7 +563,7 @@ public abstract class CDCClientIT {
                     .verifyComplete();
 
             StepVerifier.create(new CDCClient(
-                                    driver(),
+                                    driver,
                                     Duration.ZERO,
                                     NodeSelector.builder()
                                             .withLabels(Set.of("Place"))
@@ -584,7 +601,7 @@ public abstract class CDCClientIT {
                     .verifyComplete();
 
             StepVerifier.create(new CDCClient(
-                                    driver(),
+                                    driver,
                                     Duration.ZERO,
                                     NodeSelector.builder()
                                             .withLabels(Set.of("Person"))
@@ -616,7 +633,7 @@ public abstract class CDCClientIT {
                     .verifyComplete();
 
             StepVerifier.create(new CDCClient(
-                                    driver(),
+                                    driver,
                                     Duration.ZERO,
                                     RelationshipSelector.builder()
                                             .withType("BORN_IN")
@@ -647,7 +664,7 @@ public abstract class CDCClientIT {
                     .verifyComplete();
 
             StepVerifier.create(new CDCClient(
-                                    driver(),
+                                    driver,
                                     Duration.ZERO,
                                     RelationshipSelector.builder()
                                             .withType("BORN_IN")
@@ -679,7 +696,7 @@ public abstract class CDCClientIT {
 
             // first matching selector wins
             StepVerifier.create(new CDCClient(
-                                    driver(),
+                                    driver,
                                     Duration.ZERO,
                                     RelationshipSelector.builder()
                                             .withOperation(EntityOperation.CREATE)
@@ -707,7 +724,7 @@ public abstract class CDCClientIT {
     @Test
     void userSelectorsFilterCorrectly() {
         // prepare
-        try (var session = driver().session()) {
+        try (var session = driver.session()) {
             session.run(
                             "CREATE OR REPLACE USER $user SET PLAINTEXT PASSWORD $pwd CHANGE NOT REQUIRED",
                             Map.of("user", "test", "pwd", "passw0rd"))
@@ -720,7 +737,7 @@ public abstract class CDCClientIT {
         }
 
         // make changes with test user
-        try (var driver = GraphDatabase.driver(neo4j().getBoltUrl(), AuthTokens.basic("test", "passw0rd"));
+        try (var driver = GraphDatabase.driver(neo4j.getBoltUrl(), AuthTokens.basic("test", "passw0rd"));
                 var session = driver.session();
                 var impersonatedSession = driver.session(
                         SessionConfig.builder().withImpersonatedUser("neo4j").build())) {
@@ -733,13 +750,13 @@ public abstract class CDCClientIT {
         }
 
         // make changes with neo4j user
-        try (var session = driver().session()) {
+        try (var session = driver.session()) {
             session.run("UNWIND range(1, 100) AS n CREATE (:Neo4j {id: n})").consume();
         }
 
         // verify authenticatedUser = test
         StepVerifier.create(new CDCClient(
-                                driver(),
+                                driver,
                                 EntitySelector.builder()
                                         .withAuthenticatedUser("test")
                                         .build())
@@ -755,7 +772,7 @@ public abstract class CDCClientIT {
 
         // verify authenticatedUser = neo4j
         StepVerifier.create(new CDCClient(
-                                driver(),
+                                driver,
                                 EntitySelector.builder()
                                         .withAuthenticatedUser("neo4j")
                                         .build())
@@ -771,7 +788,7 @@ public abstract class CDCClientIT {
 
         // verify executingUser = neo4j
         StepVerifier.create(new CDCClient(
-                                driver(),
+                                driver,
                                 EntitySelector.builder()
                                         .withExecutingUser("neo4j")
                                         .build())
@@ -787,7 +804,7 @@ public abstract class CDCClientIT {
 
         // verify executingUser = test
         StepVerifier.create(new CDCClient(
-                                driver(),
+                                driver,
                                 EntitySelector.builder()
                                         .withExecutingUser("test")
                                         .build())
@@ -803,7 +820,7 @@ public abstract class CDCClientIT {
 
         // verify authenticatedUser = test, executingUser = neo4j
         StepVerifier.create(new CDCClient(
-                                driver(),
+                                driver,
                                 EntitySelector.builder()
                                         .withAuthenticatedUser("test")
                                         .withExecutingUser("neo4j")
@@ -823,7 +840,7 @@ public abstract class CDCClientIT {
 
     @Test
     void txMetadataSelectorFiltersCorrectly() {
-        try (var session = driver().session()) {
+        try (var session = driver.session()) {
             session.run(
                             "UNWIND range(1, 100) AS n CREATE (:Test {id: n})",
                             TransactionConfig.builder()
@@ -832,7 +849,7 @@ public abstract class CDCClientIT {
                     .consume();
         }
 
-        try (var session = driver().session()) {
+        try (var session = driver.session()) {
             session.run(
                             "UNWIND range(1, 100) AS n CREATE (:Other {id: n})",
                             TransactionConfig.builder()
@@ -841,7 +858,7 @@ public abstract class CDCClientIT {
                     .consume();
         }
 
-        try (var session = driver().session()) {
+        try (var session = driver.session()) {
             session.run(
                             "UNWIND range(1, 100) AS n CREATE (:Another {id: n})",
                             TransactionConfig.builder()
@@ -851,7 +868,7 @@ public abstract class CDCClientIT {
         }
 
         StepVerifier.create(new CDCClient(
-                                driver(),
+                                driver,
                                 EntitySelector.builder()
                                         .withTxMetadata(Map.of("app", "Test"))
                                         .build())
@@ -866,7 +883,7 @@ public abstract class CDCClientIT {
                 .verifyComplete();
 
         StepVerifier.create(new CDCClient(
-                                driver(),
+                                driver,
                                 EntitySelector.builder()
                                         .withTxMetadata(Map.of("app", "Other"))
                                         .build())
@@ -882,7 +899,7 @@ public abstract class CDCClientIT {
                 .verifyComplete();
 
         StepVerifier.create(new CDCClient(
-                                driver(),
+                                driver,
                                 EntitySelector.builder()
                                         .withTxMetadata(Map.of("app", "Other", "appUser", "test"))
                                         .build())

@@ -150,7 +150,7 @@ public class CDCClientWithAggressiveLogPruningIT {
     private ChangeIdentifier current() {
         try (var session = driver.session(SessionConfig.forDatabase("neo4j"))) {
             return new ChangeIdentifier(
-                    session.run("CALL cdc.current()").single().get(0).asString());
+                    session.run("CALL db.cdc.current()").single().get(0).asString());
         }
     }
 }
