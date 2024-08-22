@@ -116,6 +116,17 @@ public class CDCClient implements CDCService {
         this.selectors = selectors == null ? List.of() : Arrays.asList(selectors);
     }
 
+    /**
+     * Construct an instance from a driver, a session config supplier, a transaction config supplier, a poll interval and an optional list of selectors.
+     *
+     * @param driver Driver instance to use
+     * @param sessionConfigSupplier a supplier to customise session configuration
+     * @param transactionConfigSupplier a supplier to customise transaction configuration
+     * @param streamingPollInterval Polling interval to mimic streaming when using @link{stream} method
+     * @param selectors List of selectors to query changes for
+     *
+     * @see Selector
+     */
     public CDCClient(
             Driver driver,
             SessionConfigSupplier sessionConfigSupplier,
@@ -172,28 +183,30 @@ public class CDCClient implements CDCService {
 
         var query = Flux.usingWhen(
                 Mono.fromSupplier(() -> driver.rxSession(sessionConfigSupplier.sessionConfig())),
-                (RxSession session) -> Flux.from(session.readTransaction(tx -> {
-                    var current = Mono.from(tx.run("CALL cdc.current()").records())
-                            .map(MapAccessor::asMap)
-                            .map(ResultMapper::parseChangeIdentifier);
+                (RxSession session) -> Flux.from(session.readTransaction(
+                        tx -> {
+                            var current = Mono.from(tx.run("CALL cdc.current()").records())
+                                    .map(MapAccessor::asMap)
+                                    .map(ResultMapper::parseChangeIdentifier);
 
-                    var params = Map.of(
-                            "from",
-                            cursor.get().getId(),
-                            "selectors",
-                            selectors.stream().map(Selector::asMap).collect(Collectors.toList()));
+                            var params = Map.of(
+                                    "from",
+                                    cursor.get().getId(),
+                                    "selectors",
+                                    selectors.stream().map(Selector::asMap).collect(Collectors.toList()));
 
-                    log.trace("running cdc.query using parameters {}", params);
-                    RxResult result = tx.run(CDC_QUERY_STATEMENT, params);
+                            log.trace("running cdc.query using parameters {}", params);
+                            RxResult result = tx.run(CDC_QUERY_STATEMENT, params);
 
-                    return current.flatMapMany(changeId -> Flux.from(result.records())
-                            .map(MapAccessor::asMap)
-                            .map(ResultMapper::parseChangeEvent)
-                            .switchIfEmpty(Flux.defer(() -> {
-                                cursor.set(changeId);
-                                return Flux.empty();
-                            })));
-                })),
+                            return current.flatMapMany(changeId -> Flux.from(result.records())
+                                    .map(MapAccessor::asMap)
+                                    .map(ResultMapper::parseChangeEvent)
+                                    .switchIfEmpty(Flux.defer(() -> {
+                                        cursor.set(changeId);
+                                        return Flux.empty();
+                                    })));
+                        },
+                        transactionConfigSupplier.transactionConfig())),
                 RxSession::close);
 
         return Flux.concat(query, Mono.delay(streamingPollInterval).mapNotNull(x -> null))
@@ -221,12 +234,14 @@ public class CDCClient implements CDCService {
     private Mono<ChangeIdentifier> queryForChangeIdentifier(String query, String description) {
         return Mono.usingWhen(
                         Mono.fromSupplier(() -> driver.rxSession(sessionConfigSupplier.sessionConfig())),
-                        (RxSession session) -> Mono.from(session.readTransaction(tx -> {
-                            RxResult result = tx.run(query);
-                            return Mono.from(result.records())
-                                    .map(MapAccessor::asMap)
-                                    .map(ResultMapper::parseChangeIdentifier);
-                        })),
+                        (RxSession session) -> Mono.from(session.readTransaction(
+                                tx -> {
+                                    RxResult result = tx.run(query);
+                                    return Mono.from(result.records())
+                                            .map(MapAccessor::asMap)
+                                            .map(ResultMapper::parseChangeIdentifier);
+                                },
+                                transactionConfigSupplier.transactionConfig())),
                         RxSession::close)
                 .doOnSubscribe(s -> log.trace("subscribed to {}", description))
                 .doOnSuccess(c -> log.trace("subscription to {} completed with '{}'", description, c))

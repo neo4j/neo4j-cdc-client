@@ -18,7 +18,16 @@ package org.neo4j.cdc.client;
 
 import org.neo4j.driver.TransactionConfig;
 
+/**
+ * The implementation can provide a transaction config that
+ * will be called each time before a transaction gets created.
+ */
 @FunctionalInterface
 public interface TransactionConfigSupplier {
+    /**
+     * {@link TransactionConfig} to be used with the current transaction.
+     *
+     * @return transactionConfig object.
+     */
     TransactionConfig transactionConfig();
 }
