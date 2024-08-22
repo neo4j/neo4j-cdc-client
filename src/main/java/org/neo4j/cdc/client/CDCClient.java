@@ -28,6 +28,7 @@ import org.neo4j.cdc.client.model.ChangeIdentifier;
 import org.neo4j.cdc.client.selector.Selector;
 import org.neo4j.driver.Driver;
 import org.neo4j.driver.SessionConfig;
+import org.neo4j.driver.TransactionConfig;
 import org.neo4j.driver.reactive.RxResult;
 import org.neo4j.driver.reactive.RxSession;
 import org.neo4j.driver.types.MapAccessor;
@@ -48,6 +49,7 @@ public class CDCClient implements CDCService {
     private final Driver driver;
     private final List<Selector> selectors;
     private final SessionConfigSupplier sessionConfigSupplier;
+    private final TransactionConfigSupplier transactionConfigSupplier;
     private final Duration streamingPollInterval;
 
     public CDCClient(Driver driver, Selector... selectors) {
@@ -57,6 +59,7 @@ public class CDCClient implements CDCService {
     public CDCClient(Driver driver, Duration streamingPollInterval, Selector... selectors) {
         this.driver = Objects.requireNonNull(driver);
         this.sessionConfigSupplier = () -> SessionConfig.builder().build();
+        this.transactionConfigSupplier = () -> TransactionConfig.builder().build();
         this.streamingPollInterval = Objects.requireNonNull(streamingPollInterval);
         this.selectors = selectors == null ? List.of() : Arrays.asList(selectors);
     }
@@ -72,6 +75,20 @@ public class CDCClient implements CDCService {
             Selector... selectors) {
         this.driver = Objects.requireNonNull(driver);
         this.sessionConfigSupplier = sessionConfigSupplier;
+        this.transactionConfigSupplier = () -> TransactionConfig.builder().build();
+        this.streamingPollInterval = Objects.requireNonNull(streamingPollInterval);
+        this.selectors = selectors == null ? List.of() : Arrays.asList(selectors);
+    }
+
+    public CDCClient(
+            Driver driver,
+            SessionConfigSupplier sessionConfigSupplier,
+            TransactionConfigSupplier transactionConfigSupplier,
+            Duration streamingPollInterval,
+            Selector... selectors) {
+        this.driver = Objects.requireNonNull(driver);
+        this.sessionConfigSupplier = sessionConfigSupplier;
+        this.transactionConfigSupplier = transactionConfigSupplier;
         this.streamingPollInterval = Objects.requireNonNull(streamingPollInterval);
         this.selectors = selectors == null ? List.of() : Arrays.asList(selectors);
     }
@@ -90,20 +107,24 @@ public class CDCClient implements CDCService {
     public Flux<ChangeEvent> query(ChangeIdentifier from) {
         return Flux.usingWhen(
                         Mono.fromSupplier(() -> driver.rxSession(sessionConfigSupplier.sessionConfig())),
-                        (RxSession session) -> Flux.from(session.readTransaction(tx -> {
-                            var params = Map.of(
-                                    "from",
-                                    from.getId(),
-                                    "selectors",
-                                    selectors.stream().map(Selector::asMap).collect(Collectors.toList()));
+                        (RxSession session) -> Flux.from(session.readTransaction(
+                                tx -> {
+                                    var params = Map.of(
+                                            "from",
+                                            from.getId(),
+                                            "selectors",
+                                            selectors.stream()
+                                                    .map(Selector::asMap)
+                                                    .collect(Collectors.toList()));
 
-                            log.trace("running cdc.query using parameters {}", params);
-                            RxResult result = tx.run(CDC_QUERY_STATEMENT, params);
+                                    log.trace("running cdc.query using parameters {}", params);
+                                    RxResult result = tx.run(CDC_QUERY_STATEMENT, params);
 
-                            return Flux.from(result.records())
-                                    .map(MapAccessor::asMap)
-                                    .map(ResultMapper::parseChangeEvent);
-                        })),
+                                    return Flux.from(result.records())
+                                            .map(MapAccessor::asMap)
+                                            .map(ResultMapper::parseChangeEvent);
+                                },
+                                transactionConfigSupplier.transactionConfig())),
                         RxSession::close)
                 .map(this::applyPropertyFilters)
                 .doOnSubscribe(s -> log.trace("subscribed to cdc query"))
