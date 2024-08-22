@@ -1,6 +1,6 @@
 /*
  * Copyright (c) "Neo4j"
- * Neo4j Sweden AB [http://neo4j.com]
+ * Neo4j Sweden AB [https://neo4j.com]
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +20,9 @@ import java.util.Map;
 import java.util.Objects;
 import org.apache.commons.collections4.MapUtils;
 
+/**
+ * Describes the state of a relationship before or after a change.
+ */
 public class RelationshipState extends State {
 
     public RelationshipState(Map<String, Object> properties) {

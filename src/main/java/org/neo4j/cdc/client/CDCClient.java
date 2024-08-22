@@ -1,6 +1,6 @@
 /*
  * Copyright (c) "Neo4j"
- * Neo4j Sweden AB [http://neo4j.com]
+ * Neo4j Sweden AB [https://neo4j.com]
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,7 +38,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /**
- * @author Gerrit Meier
+ * Default {@link CDCService} implementation.
  */
 public class CDCClient implements CDCService {
     private final Logger log = LoggerFactory.getLogger(CDCClient.class);
@@ -52,10 +52,27 @@ public class CDCClient implements CDCService {
     private final TransactionConfigSupplier transactionConfigSupplier;
     private final Duration streamingPollInterval;
 
+    /**
+     * Construct an instance from a driver and an optional list of selectors.
+     *
+     * @param driver Driver instance to use
+     * @param selectors List of selectors to query changes for
+     *
+     * @see Selector
+     */
     public CDCClient(Driver driver, Selector... selectors) {
         this(driver, Duration.ofSeconds(1), selectors);
     }
 
+    /**
+     * Construct an instance from a driver, a poll interval and an optional list of selectors.
+     *
+     * @param driver Driver instance to use
+     * @param streamingPollInterval Polling interval to mimic streaming when using @link{stream} method
+     * @param selectors List of selectors to query changes for
+     *
+     * @see Selector
+     */
     public CDCClient(Driver driver, Duration streamingPollInterval, Selector... selectors) {
         this.driver = Objects.requireNonNull(driver);
         this.sessionConfigSupplier = () -> SessionConfig.builder().build();
@@ -64,10 +81,29 @@ public class CDCClient implements CDCService {
         this.selectors = selectors == null ? List.of() : Arrays.asList(selectors);
     }
 
+    /**
+     * Construct an instance from a driver, a session config supplier and an optional list of selectors.
+     *
+     * @param driver Driver instance to use
+     * @param sessionConfigSupplier a supplier to customise session configuration
+     * @param selectors List of selectors to query changes for
+     *
+     * @see Selector
+     */
     public CDCClient(Driver driver, SessionConfigSupplier sessionConfigSupplier, Selector... selectors) {
         this(driver, sessionConfigSupplier, Duration.ofSeconds(1), selectors);
     }
 
+    /**
+     * Construct an instance from a driver, a session config supplier, a poll interval and an optional list of selectors.
+     *
+     * @param driver Driver instance to use
+     * @param sessionConfigSupplier a supplier to customise session configuration
+     * @param streamingPollInterval Polling interval to mimic streaming when using @link{stream} method
+     * @param selectors List of selectors to query changes for
+     *
+     * @see Selector
+     */
     public CDCClient(
             Driver driver,
             SessionConfigSupplier sessionConfigSupplier,
@@ -131,13 +167,16 @@ public class CDCClient implements CDCService {
                 .doOnComplete(() -> log.trace("subscription to cdc query completed"));
     }
 
-    @Override
     public Flux<ChangeEvent> stream(ChangeIdentifier from) {
         var cursor = new AtomicReference<>(from);
 
         var query = Flux.usingWhen(
                 Mono.fromSupplier(() -> driver.rxSession(sessionConfigSupplier.sessionConfig())),
                 (RxSession session) -> Flux.from(session.readTransaction(tx -> {
+                    var current = Mono.from(tx.run("CALL cdc.current()").records())
+                            .map(MapAccessor::asMap)
+                            .map(ResultMapper::parseChangeIdentifier);
+
                     var params = Map.of(
                             "from",
                             cursor.get().getId(),
@@ -147,7 +186,13 @@ public class CDCClient implements CDCService {
                     log.trace("running cdc.query using parameters {}", params);
                     RxResult result = tx.run(CDC_QUERY_STATEMENT, params);
 
-                    return Flux.from(result.records()).map(MapAccessor::asMap).map(ResultMapper::parseChangeEvent);
+                    return current.flatMapMany(changeId -> Flux.from(result.records())
+                            .map(MapAccessor::asMap)
+                            .map(ResultMapper::parseChangeEvent)
+                            .switchIfEmpty(Flux.defer(() -> {
+                                cursor.set(changeId);
+                                return Flux.empty();
+                            })));
                 })),
                 RxSession::close);
 

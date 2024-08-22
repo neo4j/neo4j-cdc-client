@@ -1,6 +1,6 @@
 /*
  * Copyright (c) "Neo4j"
- * Neo4j Sweden AB [http://neo4j.com]
+ * Neo4j Sweden AB [https://neo4j.com]
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,7 +18,6 @@ package org.neo4j.cdc.client.pattern;
 
 import static java.util.Collections.emptySet;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -40,7 +39,11 @@ public class NodePattern implements Pattern {
     @NotNull
     private final Set<String> excludeProperties;
 
-    private final Map<String, Object> metadata = new HashMap<>();
+    private String executingUser;
+
+    private String authenticatedUser;
+
+    private Map<String, Object> txMetadata;
 
     private EntityOperation entityOperation;
 
@@ -107,8 +110,17 @@ public class NodePattern implements Pattern {
     @NotNull
     @Override
     public Set<Selector> toSelector() {
-        return Set.of(new NodeSelector(
-                entityOperation, changesTo, labels, keyFilters, includeProperties, excludeProperties, metadata));
+        return Set.of(NodeSelector.builder()
+                .withOperation(entityOperation)
+                .withChangesTo(changesTo)
+                .withLabels(labels)
+                .withKey(keyFilters)
+                .withExecutingUser(executingUser)
+                .withAuthenticatedUser(authenticatedUser)
+                .withTxMetadata(txMetadata)
+                .includingProperties(includeProperties)
+                .excludingProperties(excludeProperties)
+                .build());
     }
 
     @Override
@@ -117,12 +129,22 @@ public class NodePattern implements Pattern {
     }
 
     @Override
-    public void withMetadata(Map<String, Object> metadata) {
-        this.metadata.putAll(metadata);
+    public void withChangesTo(Set<String> changesTo) {
+        this.changesTo = changesTo;
     }
 
     @Override
-    public void withChangesTo(Set<String> changesTo) {
-        this.changesTo = changesTo;
+    public void withExecutingUser(String user) {
+        this.executingUser = user;
+    }
+
+    @Override
+    public void withAuthenticatedUser(String user) {
+        this.authenticatedUser = user;
+    }
+
+    @Override
+    public void withTxMetadata(Map<String, Object> metadata) {
+        this.txMetadata = metadata;
     }
 }

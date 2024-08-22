@@ -1,6 +1,6 @@
 /*
  * Copyright (c) "Neo4j"
- * Neo4j Sweden AB [http://neo4j.com]
+ * Neo4j Sweden AB [https://neo4j.com]
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,8 +16,22 @@
  */
 package org.neo4j.cdc.client.model;
 
+/**
+ * Capture Mode
+ */
 public enum CaptureMode {
+    /**
+     * CDC is disabled.
+     */
     OFF,
+    /**
+     * Changes are captured as the difference between before and after states of each changed entity
+     * (i.e. they only contain removals, updates and additions).
+     */
     DIFF,
+    /**
+     * Changes are recorded as a complete copy of the before and after states of each changed entity
+     * (i.e. they contain the full node/relationship, regardless of the extent to which they were altered).
+     */
     FULL
 }

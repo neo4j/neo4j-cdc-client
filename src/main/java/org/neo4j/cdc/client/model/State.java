@@ -1,6 +1,6 @@
 /*
  * Copyright (c) "Neo4j"
- * Neo4j Sweden AB [http://neo4j.com]
+ * Neo4j Sweden AB [https://neo4j.com]
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +18,9 @@ package org.neo4j.cdc.client.model;
 
 import java.util.Map;
 
+/**
+ * Describes the state of an entity before or after a change.
+ */
 public abstract class State {
     private final Map<String, Object> properties;
 
@@ -25,6 +28,12 @@ public abstract class State {
         this.properties = properties;
     }
 
+    /**
+     * Map of properties.
+     * When on DIFF CDC mode, it is limited to the properties that have changed.
+     *
+     * @return properties
+     */
     public Map<String, Object> getProperties() {
         return properties;
     }

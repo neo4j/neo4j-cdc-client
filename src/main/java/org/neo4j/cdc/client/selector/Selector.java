@@ -1,6 +1,6 @@
 /*
  * Copyright (c) "Neo4j"
- * Neo4j Sweden AB [http://neo4j.com]
+ * Neo4j Sweden AB [https://neo4j.com]
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +19,9 @@ package org.neo4j.cdc.client.selector;
 import java.util.Map;
 import org.neo4j.cdc.client.model.ChangeEvent;
 
+/**
+ * Describes a selector that provides a means for filtering the returned changes.
+ */
 public interface Selector {
 
     Map<String, Object> asMap();

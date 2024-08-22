@@ -1,6 +1,6 @@
 /*
  * Copyright (c) "Neo4j"
- * Neo4j Sweden AB [http://neo4j.com]
+ * Neo4j Sweden AB [https://neo4j.com]
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,9 +18,21 @@ package org.neo4j.cdc.client.model;
 
 import java.util.Objects;
 
+/**
+ * Type of operation performed on an entity.
+ */
 public enum EntityOperation {
+    /**
+     * Entity is created.
+     */
     CREATE("c"),
+    /**
+     * Entity is updated.
+     */
     UPDATE("u"),
+    /**
+     * Entity is deleted.
+     */
     DELETE("d");
 
     public final String shorthand;

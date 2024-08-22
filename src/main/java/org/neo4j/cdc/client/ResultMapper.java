@@ -1,6 +1,6 @@
 /*
  * Copyright (c) "Neo4j"
- * Neo4j Sweden AB [http://neo4j.com]
+ * Neo4j Sweden AB [https://neo4j.com]
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,9 +23,6 @@ import org.neo4j.cdc.client.model.ChangeIdentifier;
 import org.neo4j.cdc.client.model.Event;
 import org.neo4j.cdc.client.model.Metadata;
 
-/**
- * @author Gerrit Meier
- */
 public final class ResultMapper {
     private static final String ID_FIELD = "id";
     private static final String TX_ID_FIELD = "txId";

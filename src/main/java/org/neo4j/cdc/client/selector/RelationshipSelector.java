@@ -1,6 +1,6 @@
 /*
  * Copyright (c) "Neo4j"
- * Neo4j Sweden AB [http://neo4j.com]
+ * Neo4j Sweden AB [https://neo4j.com]
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,14 +16,14 @@
  */
 package org.neo4j.cdc.client.selector;
 
-import static java.util.Collections.emptyMap;
-import static java.util.Collections.emptySet;
-
 import java.util.*;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.neo4j.cdc.client.model.*;
 
+/**
+ * Provides a means to filter changes for nodes.
+ */
 public class RelationshipSelector extends EntitySelector {
     @Nullable
     private final String type;
@@ -37,58 +37,36 @@ public class RelationshipSelector extends EntitySelector {
     @NotNull
     private final Map<String, Object> key;
 
-    public RelationshipSelector() {
-        this(null);
-    }
-
-    public RelationshipSelector(EntityOperation change) {
-        this(change, emptySet());
-    }
-
-    public RelationshipSelector(EntityOperation change, Set<String> changesTo) {
-        this(change, changesTo, null);
-    }
-
-    public RelationshipSelector(EntityOperation change, Set<String> changesTo, String type) {
-        this(change, changesTo, type, new RelationshipNodeSelector());
-    }
-
-    public RelationshipSelector(
-            EntityOperation change, Set<String> changesTo, String type, RelationshipNodeSelector start) {
-        this(change, changesTo, type, start, new RelationshipNodeSelector());
-    }
-
-    public RelationshipSelector(
-            EntityOperation change,
-            Set<String> changesTo,
-            String type,
-            RelationshipNodeSelector start,
-            RelationshipNodeSelector end) {
-        this(change, changesTo, type, start, end, emptyMap(), emptyMap());
-    }
-
-    public RelationshipSelector(
-            EntityOperation change,
-            Set<String> changesTo,
-            String type,
-            RelationshipNodeSelector start,
-            RelationshipNodeSelector end,
-            Map<String, Object> key,
-            Map<String, Object> metadata) {
-        this(change, changesTo, type, start, end, key, emptySet(), emptySet(), metadata);
-    }
-
-    public RelationshipSelector(
+    /**
+     * Construct a relationship selector for a specific operation, a list of affected properties and a relationship
+     * type, a start node, an end node, a key, specifying which properties to include or exclude in the returned change
+     * event and a metadata.
+     *
+     * @param change operation type
+     * @param changesTo list of properties that were all changed
+     * @param type relationship type
+     * @param start selector for start node
+     * @param end selector for end node
+     * @param key key properties to match on changed node
+     * @param executingUser executing user that performed changes
+     * @param authenticatedUser authenticated user that performed changes
+     * @param txMetadata tx metadata to match
+     * @param includeProperties list of properties to include in the returned change event
+     * @param excludeProperties list of properties to exclude in the returned change event
+     */
+    private RelationshipSelector(
             @Nullable EntityOperation change,
             @NotNull Set<String> changesTo,
             @Nullable String type,
             @NotNull RelationshipNodeSelector start,
             @NotNull RelationshipNodeSelector end,
             @NotNull Map<String, Object> key,
+            @Nullable String executingUser,
+            @Nullable String authenticatedUser,
+            @NotNull Map<String, Object> txMetadata,
             @NotNull Set<String> includeProperties,
-            @NotNull Set<String> excludeProperties,
-            @NotNull Map<String, Object> metadata) {
-        super(change, changesTo, includeProperties, excludeProperties, metadata);
+            @NotNull Set<String> excludeProperties) {
+        super(change, changesTo, executingUser, authenticatedUser, txMetadata, includeProperties, excludeProperties);
 
         this.type = type;
         this.start = Objects.requireNonNull(start);
@@ -96,18 +74,39 @@ public class RelationshipSelector extends EntitySelector {
         this.key = Objects.requireNonNull(key);
     }
 
+    /**
+     * Relationship type of the changed relationship.
+     *
+     * @return relationship type
+     */
     public @Nullable String getType() {
         return this.type;
     }
 
+    /**
+     * Selector for the start node of the changed relationship.
+     *
+     * @return relationship node selector
+     */
     public @NotNull RelationshipNodeSelector getStart() {
         return this.start;
     }
 
+    /**
+     * Selector for the end node of the changed relationship.
+     *
+     * @return relationship node selector
+     */
     public @NotNull RelationshipNodeSelector getEnd() {
         return this.end;
     }
 
+    /**
+     * Map of property names and values that identifies the relationship.
+     * All the property names needs to be part of a Key constraint and values need to match.
+     *
+     * @return map of property name and values
+     */
     public @NotNull Map<String, Object> getKey() {
         return this.key;
     }
@@ -195,5 +194,86 @@ public class RelationshipSelector extends EntitySelector {
         result = 31 * result + end.hashCode();
         result = 31 * result + key.hashCode();
         return result;
+    }
+
+    /**
+     * Returns a builder instance for {@link RelationshipSelector}.
+     *
+     * @return builder instance
+     */
+    public static RelationshipSelectorBuilder builder() {
+        return new RelationshipSelectorBuilder();
+    }
+
+    public static class RelationshipSelectorBuilder extends Builder<RelationshipSelectorBuilder, RelationshipSelector> {
+        private String type;
+        private RelationshipNodeSelector start;
+        private RelationshipNodeSelector end;
+        private Map<String, Object> key;
+
+        private RelationshipSelectorBuilder() {}
+
+        /**
+         * Set a filter on relationship type on the selector to be built.
+         *
+         * @param type relationship type
+         * @return builder
+         */
+        public RelationshipSelectorBuilder withType(String type) {
+            this.type = type;
+            return this;
+        }
+
+        /**
+         * Set a filter on relationship start node on the selector to be built.
+         *
+         * @param start relationship node selector
+         * @return builder
+         */
+        public RelationshipSelectorBuilder withStart(RelationshipNodeSelector start) {
+            this.start = start;
+            return this;
+        }
+
+        /**
+         * Set a filter on relationship end node on the selector to be built.
+         *
+         * @param end relationship node selector
+         * @return builder
+         */
+        public RelationshipSelectorBuilder withEnd(RelationshipNodeSelector end) {
+            this.end = end;
+            return this;
+        }
+
+        /**
+         * Set a filter of key properties on the selector to be built.
+         * All the property names needs to be part of a Key constraint and values need to match.
+         *
+         * @param key map of property names and values
+         * @return builder
+         */
+        public RelationshipSelectorBuilder withKey(Map<String, Object> key) {
+            this.key = key;
+            return this;
+        }
+
+        @Override
+        public RelationshipSelector build() {
+            return new RelationshipSelector(
+                    operation,
+                    Objects.requireNonNullElseGet(changesTo, Collections::emptySet),
+                    type,
+                    Objects.requireNonNullElseGet(
+                            start, () -> RelationshipNodeSelector.builder().build()),
+                    Objects.requireNonNullElseGet(
+                            end, () -> RelationshipNodeSelector.builder().build()),
+                    Objects.requireNonNullElseGet(key, Collections::emptyMap),
+                    executingUser,
+                    authenticatedUser,
+                    Objects.requireNonNullElseGet(txMetadata, Collections::emptyMap),
+                    Objects.requireNonNullElseGet(includeProperties, Collections::emptySet),
+                    Objects.requireNonNullElseGet(excludeProperties, Collections::emptySet));
+        }
     }
 }

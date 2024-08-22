@@ -1,6 +1,6 @@
 /*
  * Copyright (c) "Neo4j"
- * Neo4j Sweden AB [http://neo4j.com]
+ * Neo4j Sweden AB [https://neo4j.com]
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,15 +22,43 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /**
- * @author Gerrit Meier
+ * <code>CDCService</code> enables callers to track changes happening in a Neo4j database.
  */
 public interface CDCService {
 
+    /**
+     * Returns the change identifier for the earliest available change.
+     *
+     * @return change identifier
+     */
     Mono<ChangeIdentifier> earliest();
 
+    /**
+     * Returns the change identifier for the last committed transaction.
+     *
+     * @return change identifier
+     */
     Mono<ChangeIdentifier> current();
 
+    /**
+     * Returns the changes that happened to the database after the given change identifier.
+     * The returned Flux completes when we reach the end of change stream.
+     *
+     * @param from change identifier to query changes from.
+     * @return change events
+     */
     Flux<ChangeEvent> query(ChangeIdentifier from);
 
+    /**
+     * Returns the changes that happened to the database after the given change identifier.
+     * The returned Flux does not complete, and continues querying for new changes until the
+     * Flux subscription is closed.
+     * <p>
+     * <i>Change Data Capture feature currently does not support streaming, and this method
+     * mimics streaming through polling.</i>
+     *
+     * @param from change identifier to query changes from.
+     * @return change events
+     */
     Flux<ChangeEvent> stream(ChangeIdentifier from);
 }

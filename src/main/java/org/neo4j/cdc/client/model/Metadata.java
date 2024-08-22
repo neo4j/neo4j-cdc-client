@@ -1,6 +1,6 @@
 /*
  * Copyright (c) "Neo4j"
- * Neo4j Sweden AB [http://neo4j.com]
+ * Neo4j Sweden AB [https://neo4j.com]
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,10 +23,14 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import org.apache.commons.collections4.MapUtils;
 
+/**
+ * Useful information about a transaction.
+ */
 public class Metadata {
     private static final String EXECUTING_USER = "executingUser";
     private static final String CONNECTION_CLIENT = "connectionClient";
     private static final String AUTHENTICATED_USER = "authenticatedUser";
+    private static final String DATABASE_NAME = "databaseName";
     private static final String CAPTURE_MODE = "captureMode";
     private static final String SERVER_ID = "serverId";
     private static final String CONNECTION_TYPE = "connectionType";
@@ -40,6 +44,7 @@ public class Metadata {
             CONNECTION_TYPE,
             CONNECTION_CLIENT,
             CONNECTION_SERVER,
+            DATABASE_NAME,
             CAPTURE_MODE,
             SERVER_ID,
             TX_COMMIT_TIME,
@@ -51,6 +56,7 @@ public class Metadata {
     private final String authenticatedUser;
     private final CaptureMode captureMode;
     private final String serverId;
+    private final String databaseName;
     private final String connectionType;
     private final String connectionServer;
     private final ZonedDateTime txStartTime;
@@ -62,6 +68,7 @@ public class Metadata {
             String authenticatedUser,
             String executingUser,
             String serverId,
+            String databaseName,
             CaptureMode captureMode,
             String connectionType,
             String connectionClient,
@@ -74,6 +81,7 @@ public class Metadata {
         this.connectionClient = connectionClient;
         this.authenticatedUser = authenticatedUser;
         this.captureMode = Objects.requireNonNull(captureMode);
+        this.databaseName = Objects.requireNonNullElse(databaseName, "");
         this.serverId = Objects.requireNonNull(serverId);
         this.connectionType = Objects.requireNonNull(connectionType);
         this.connectionServer = connectionServer;
@@ -83,46 +91,111 @@ public class Metadata {
         this.additionalEntries = additionalEntries;
     }
 
+    /**
+     * The user that performed this change.
+     * May be different from @link{authenticatedUser} when using impersonation.
+     *
+     * @return executing user
+     */
     public String getExecutingUser() {
         return this.executingUser;
     }
 
+    /**
+     * The client’s address (usually IP address and port, but it might change based on protocol).
+     *
+     * @return client's address
+     */
     public String getConnectionClient() {
         return this.connectionClient;
     }
 
+    /**
+     * The authenticated user when this change was performed.
+     *
+     * @return authenticated user
+     */
     public String getAuthenticatedUser() {
         return this.authenticatedUser;
     }
 
+    /**
+     * Database name on which this change was performed.
+     *
+     * @return database name
+     */
+    public String getDatabaseName() {
+        return this.databaseName;
+    }
+
+    /**
+     * CDC capture mode at the time this change was captured.
+     *
+     * @return capture mode
+     */
     public CaptureMode getCaptureMode() {
         return this.captureMode;
     }
 
+    /**
+     * The identifier of the server that performed this change.
+     *
+     * @return server id
+     */
     public String getServerId() {
         return this.serverId;
     }
 
+    /**
+     * The protocol under which the client is connected through.
+     *
+     * @return connection type
+     */
     public String getConnectionType() {
         return this.connectionType;
     }
 
+    /**
+     * The server’s address (usually IP address and port but might change based on protocol).
+     *
+     * @return server's address
+     */
     public String getConnectionServer() {
         return this.connectionServer;
     }
 
+    /**
+     * The timestamp when the underlying transaction started.
+     *
+     * @return tx start time
+     */
     public ZonedDateTime getTxStartTime() {
         return this.txStartTime;
     }
 
+    /**
+     * The timestamp when the underlying transaction committed.
+     *
+     * @return tx commit time
+     */
     public ZonedDateTime getTxCommitTime() {
         return this.txCommitTime;
     }
 
+    /**
+     * Any other information captured but not included as a property.
+     *
+     * @return additional information
+     */
     public Map<String, Object> getAdditionalEntries() {
         return additionalEntries;
     }
 
+    /**
+     * The metadata associated with the transaction when the operation was performed.
+     *
+     * @return transaction metadata
+     */
     public Map<String, Object> getTxMetadata() {
         return txMetadata;
     }
@@ -164,10 +237,11 @@ public class Metadata {
     @Override
     public String toString() {
         return String.format(
-                "Metadata{authenticatedUser=%s, executingUser=%s, serverId=%s, captureMode=%s, connectionType=%s, connectionClient=%s, connectionServer=%s, txStartTime=%s, txCommitTime=%s, additionalEntries=%s}",
+                "Metadata{authenticatedUser=%s, executingUser=%s, serverId=%s, databaseName=%s, captureMode=%s, connectionType=%s, connectionClient=%s, connectionServer=%s, txStartTime=%s, txCommitTime=%s, additionalEntries=%s}",
                 authenticatedUser,
                 executingUser,
                 serverId,
+                databaseName,
                 captureMode,
                 connectionType,
                 connectionClient,
@@ -183,6 +257,7 @@ public class Metadata {
 
         var authenticatedUser = MapUtils.getString(cypherMap, AUTHENTICATED_USER);
         var executingUser = MapUtils.getString(cypherMap, EXECUTING_USER);
+        var databaseName = MapUtils.getString(cypherMap, DATABASE_NAME);
         var captureMode = CaptureMode.valueOf(MapUtils.getString(cypherMap, CAPTURE_MODE));
         var serverId = MapUtils.getString(cypherMap, SERVER_ID);
         var connectionType = MapUtils.getString(cypherMap, CONNECTION_TYPE);
@@ -199,6 +274,7 @@ public class Metadata {
                 authenticatedUser,
                 executingUser,
                 serverId,
+                databaseName,
                 captureMode,
                 connectionType,
                 connectionClient,
