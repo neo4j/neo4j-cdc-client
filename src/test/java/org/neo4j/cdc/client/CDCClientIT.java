@@ -32,7 +32,9 @@ import org.neo4j.cdc.client.selector.EntitySelector;
 import org.neo4j.cdc.client.selector.NodeSelector;
 import org.neo4j.cdc.client.selector.RelationshipSelector;
 import org.neo4j.driver.*;
+import org.neo4j.driver.exceptions.ClientException;
 import org.neo4j.driver.exceptions.FatalDiscoveryException;
+import org.neo4j.driver.reactive.RxResult;
 import org.testcontainers.containers.Neo4jContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -120,6 +122,31 @@ public class CDCClientIT {
                 () -> SessionConfig.builder().withDatabase("unknownDatabase").build());
         StepVerifier.create(client.current())
                 .expectError(FatalDiscoveryException.class)
+                .verify();
+    }
+
+    @Test
+    void respectsTransactionConfigSupplier() {
+        var clientToSuccess = new CDCClient(
+                driver,
+                () -> SessionConfig.builder().build(),
+                () -> TransactionConfig.builder()
+                        .withMetadata(Map.of("app", "test"))
+                        .build(),
+                Duration.ofSeconds(1));
+
+        StepVerifier.create(clientToSuccess.query(current)).verifyComplete();
+
+        var clientToFail = new CDCClient(
+                driver,
+                () -> SessionConfig.builder().build(),
+                () -> TransactionConfig.builder()
+                        .withTimeout(Duration.ofNanos(-1))
+                        .build(),
+                Duration.ofSeconds(1));
+
+        StepVerifier.create(clientToFail.query(current))
+                .expectErrorMessage("Transaction timeout should not be negative")
                 .verify();
     }
 

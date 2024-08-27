@@ -164,8 +164,8 @@ public class CDCClient implements CDCService {
                                                     .map(Selector::asMap)
                                                     .collect(Collectors.toList()));
 
-                            log.trace("running db.cdc.query using parameters {}", params);
-                            RxResult result = tx.run(CDC_QUERY_STATEMENT, params);
+                                    log.trace("running db.cdc.query using parameters {}", params);
+                                    RxResult result = tx.run(CDC_QUERY_STATEMENT, params);
 
                                     return Flux.from(result.records())
                                             .map(MapAccessor::asMap)
@@ -183,10 +183,12 @@ public class CDCClient implements CDCService {
 
         var query = Flux.usingWhen(
                 Mono.fromSupplier(() -> driver.rxSession(sessionConfigSupplier.sessionConfig())),
-                (RxSession session) -> Flux.from(session.readTransaction(tx -> {
-                    var current = Mono.from(tx.run("CALL db.cdc.current()").records())
-                            .map(MapAccessor::asMap)
-                            .map(ResultMapper::parseChangeIdentifier);
+                (RxSession session) -> Flux.from(session.readTransaction(
+                        tx -> {
+                            var current = Mono.from(
+                                            tx.run("CALL db.cdc.current()").records())
+                                    .map(MapAccessor::asMap)
+                                    .map(ResultMapper::parseChangeIdentifier);
 
                             var params = Map.of(
                                     "from",
@@ -194,8 +196,8 @@ public class CDCClient implements CDCService {
                                     "selectors",
                                     selectors.stream().map(Selector::asMap).collect(Collectors.toList()));
 
-                    log.trace("running db.cdc.query using parameters {}", params);
-                    RxResult result = tx.run(CDC_QUERY_STATEMENT, params);
+                            log.trace("running db.cdc.query using parameters {}", params);
+                            RxResult result = tx.run(CDC_QUERY_STATEMENT, params);
 
                             return current.flatMapMany(changeId -> Flux.from(result.records())
                                     .map(MapAccessor::asMap)
