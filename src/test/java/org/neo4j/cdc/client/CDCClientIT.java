@@ -124,6 +124,31 @@ public class CDCClientIT {
     }
 
     @Test
+    void respectsTransactionConfigSupplier() {
+        var clientToSuccess = new CDCClient(
+                driver,
+                () -> SessionConfig.builder().build(),
+                () -> TransactionConfig.builder()
+                        .withMetadata(Map.of("app", "test"))
+                        .build(),
+                Duration.ofSeconds(1));
+
+        StepVerifier.create(clientToSuccess.query(current)).verifyComplete();
+
+        var clientToFail = new CDCClient(
+                driver,
+                () -> SessionConfig.builder().build(),
+                () -> TransactionConfig.builder()
+                        .withTimeout(Duration.ofNanos(-1))
+                        .build(),
+                Duration.ofSeconds(1));
+
+        StepVerifier.create(clientToFail.query(current))
+                .expectErrorMessage("Transaction timeout should not be negative")
+                .verify();
+    }
+
+    @Test
     void shouldReturnCypherTypesWithoutConversion() {
         var client = new CDCClient(driver, Duration.ZERO);
 
