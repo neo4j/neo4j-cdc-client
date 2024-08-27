@@ -43,9 +43,9 @@ import reactor.core.publisher.Mono;
 public class CDCClient implements CDCService {
     private final Logger log = LoggerFactory.getLogger(CDCClient.class);
 
-    private static final String CDC_EARLIEST_STATEMENT = "call cdc.earliest()";
-    private static final String CDC_CURRENT_STATEMENT = "call cdc.current()";
-    private static final String CDC_QUERY_STATEMENT = "call cdc.query($from, $selectors)";
+    private static final String CDC_EARLIEST_STATEMENT = "call db.cdc.earliest()";
+    private static final String CDC_CURRENT_STATEMENT = "call db.cdc.current()";
+    private static final String CDC_QUERY_STATEMENT = "call db.cdc.query($from, $selectors)";
     private final Driver driver;
     private final List<Selector> selectors;
     private final SessionConfigSupplier sessionConfigSupplier;
@@ -142,12 +142,12 @@ public class CDCClient implements CDCService {
 
     @Override
     public Mono<ChangeIdentifier> earliest() {
-        return queryForChangeIdentifier(CDC_EARLIEST_STATEMENT, "cdc.earliest");
+        return queryForChangeIdentifier(CDC_EARLIEST_STATEMENT, "db.cdc.earliest");
     }
 
     @Override
     public Mono<ChangeIdentifier> current() {
-        return queryForChangeIdentifier(CDC_CURRENT_STATEMENT, "cdc.current");
+        return queryForChangeIdentifier(CDC_CURRENT_STATEMENT, "db.cdc.current");
     }
 
     @Override
@@ -164,8 +164,8 @@ public class CDCClient implements CDCService {
                                                     .map(Selector::asMap)
                                                     .collect(Collectors.toList()));
 
-                                    log.trace("running cdc.query using parameters {}", params);
-                                    RxResult result = tx.run(CDC_QUERY_STATEMENT, params);
+                            log.trace("running db.cdc.query using parameters {}", params);
+                            RxResult result = tx.run(CDC_QUERY_STATEMENT, params);
 
                                     return Flux.from(result.records())
                                             .map(MapAccessor::asMap)
@@ -183,11 +183,10 @@ public class CDCClient implements CDCService {
 
         var query = Flux.usingWhen(
                 Mono.fromSupplier(() -> driver.rxSession(sessionConfigSupplier.sessionConfig())),
-                (RxSession session) -> Flux.from(session.readTransaction(
-                        tx -> {
-                            var current = Mono.from(tx.run("CALL cdc.current()").records())
-                                    .map(MapAccessor::asMap)
-                                    .map(ResultMapper::parseChangeIdentifier);
+                (RxSession session) -> Flux.from(session.readTransaction(tx -> {
+                    var current = Mono.from(tx.run("CALL db.cdc.current()").records())
+                            .map(MapAccessor::asMap)
+                            .map(ResultMapper::parseChangeIdentifier);
 
                             var params = Map.of(
                                     "from",
@@ -195,8 +194,8 @@ public class CDCClient implements CDCService {
                                     "selectors",
                                     selectors.stream().map(Selector::asMap).collect(Collectors.toList()));
 
-                            log.trace("running cdc.query using parameters {}", params);
-                            RxResult result = tx.run(CDC_QUERY_STATEMENT, params);
+                    log.trace("running db.cdc.query using parameters {}", params);
+                    RxResult result = tx.run(CDC_QUERY_STATEMENT, params);
 
                             return current.flatMapMany(changeId -> Flux.from(result.records())
                                     .map(MapAccessor::asMap)
