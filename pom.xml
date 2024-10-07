@@ -41,7 +41,7 @@
         <commons-collections4.version>4.4</commons-collections4.version>
         <commons-lang3.version>3.17.0</commons-lang3.version>
         <java.version>11</java.version>
-        <jreleaser-maven-plugin.version>1.13.1</jreleaser-maven-plugin.version>
+        <jreleaser-maven-plugin.version>1.14.0</jreleaser-maven-plugin.version>
         <junit-jupiter.version>5.11.0</junit-jupiter.version>
         <license-maven-plugin.version>4.5</license-maven-plugin.version>
         <licensing-maven-plugin.version>1.7.11</licensing-maven-plugin.version>
