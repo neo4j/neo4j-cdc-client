@@ -34,7 +34,7 @@
         <url>https://github.com/neo4j/neo4j-cdc-client</url>
     </scm>
     <properties>
-        <annotations.version>25.0.0</annotations.version>
+        <annotations.version>26.0.0</annotations.version>
         <antlr4.version>4.13.2</antlr4.version>
         <assertj-core.version>3.26.3</assertj-core.version>
         <build-resources.version>2024-07.1</build-resources.version>
