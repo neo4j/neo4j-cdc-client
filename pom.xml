@@ -62,7 +62,7 @@
         <neo4j-java-driver.version>4.4.18</neo4j-java-driver.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <reactive-streams.version>1.0.4</reactive-streams.version>
-        <reactor.version>3.6.10</reactor.version>
+        <reactor.version>3.6.11</reactor.version>
         <slf4j-api.version>1.7.36</slf4j-api.version>
         <sortpom-maven-plugin.version>4.0.0</sortpom-maven-plugin.version>
         <spotless-maven-plugin.version>2.43.0</spotless-maven-plugin.version>
