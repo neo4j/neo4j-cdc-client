@@ -37,7 +37,7 @@
         <annotations.version>26.0.1</annotations.version>
         <antlr4.version>4.13.2</antlr4.version>
         <assertj-core.version>3.26.3</assertj-core.version>
-        <build-resources.version>2024-07.1</build-resources.version>
+        <build-resources.version>2024-11.1</build-resources.version>
         <commons-collections4.version>4.4</commons-collections4.version>
         <commons-lang3.version>3.17.0</commons-lang3.version>
         <java.version>11</java.version>
@@ -62,14 +62,21 @@
         <neo4j-java-driver.version>4.4.18</neo4j-java-driver.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <reactive-streams.version>1.0.4</reactive-streams.version>
-        <reactor.version>3.7.0</reactor.version>
+        <reactor-release-train.version>2024.0.0</reactor-release-train.version>
         <slf4j-api.version>1.7.36</slf4j-api.version>
         <sortpom-maven-plugin.version>4.0.0</sortpom-maven-plugin.version>
         <spotless-maven-plugin.version>2.43.0</spotless-maven-plugin.version>
-        <testcontainers.version>1.20.3</testcontainers.version>
+        <testcontainers.version>1.20.4</testcontainers.version>
     </properties>
     <dependencyManagement>
         <dependencies>
+            <dependency>
+                <groupId>io.projectreactor</groupId>
+                <artifactId>reactor-bom</artifactId>
+                <version>${reactor-release-train.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
             <dependency>
                 <groupId>org.reactivestreams</groupId>
                 <artifactId>reactive-streams</artifactId>
@@ -81,7 +88,6 @@
         <dependency>
             <groupId>io.projectreactor</groupId>
             <artifactId>reactor-core</artifactId>
-            <version>${reactor.version}</version>
         </dependency>
         <dependency>
             <groupId>org.antlr</groupId>
@@ -100,7 +106,7 @@
         </dependency>
         <dependency>
             <groupId>org.neo4j.driver</groupId>
-            <artifactId>neo4j-java-driver</artifactId>
+            <artifactId>neo4j-java-driver-slim</artifactId>
             <version>${neo4j-java-driver.version}</version>
         </dependency>
         <dependency>
@@ -111,7 +117,6 @@
         <dependency>
             <groupId>io.projectreactor</groupId>
             <artifactId>reactor-test</artifactId>
-            <version>${reactor.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -214,7 +219,7 @@
                     <failIfMissing>true</failIfMissing>
                     <plainTextReport>true</plainTextReport>
                     <prependText>${licensing.prepend.text}</prependText>
-                    <excludedGroups>^((org.neo4j.cdc.client){1})$</excludedGroups>
+                    <excludedGroups>^((org.neo4j.cdc.client|org.neo4j.driver){1})$</excludedGroups>
                     <includedScopes>compile,runtime</includedScopes>
                 </configuration>
                 <dependencies>
