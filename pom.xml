@@ -37,7 +37,7 @@
         <annotations.version>26.0.1</annotations.version>
         <antlr4.version>4.13.2</antlr4.version>
         <assertj-core.version>3.26.3</assertj-core.version>
-        <build-resources.version>2024-11.1</build-resources.version>
+        <build-resources.version>2024-12.1</build-resources.version>
         <commons-collections4.version>4.4</commons-collections4.version>
         <commons-lang3.version>3.17.0</commons-lang3.version>
         <java.version>11</java.version>
