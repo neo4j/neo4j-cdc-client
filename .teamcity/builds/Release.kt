@@ -1,87 +1,122 @@
 package builds
 
-import jetbrains.buildServer.configs.kotlin.*
-import jetbrains.buildServer.configs.kotlin.buildFeatures.dockerSupport
+import jetbrains.buildServer.configs.kotlin.AbsoluteId
+import jetbrains.buildServer.configs.kotlin.BuildType
+import jetbrains.buildServer.configs.kotlin.ParameterDisplay
+import jetbrains.buildServer.configs.kotlin.buildSteps.ScriptBuildStep
+import jetbrains.buildServer.configs.kotlin.buildSteps.script
+import jetbrains.buildServer.configs.kotlin.toId
 
 private const val DRY_RUN = "dry-run"
 
 class Release(id: String, name: String) :
-    BuildType({
-      this.id(id.toId())
-      this.name = name
+    BuildType(
+        {
+          this.id(id.toId())
+          this.name = name
 
-      templates(AbsoluteId("FetchSigningKey"))
+          templates(AbsoluteId("FetchSigningKey"))
 
-      params {
-        text(
-            "releaseVersion",
-            "",
-            label = "Version to release",
-            display = ParameterDisplay.PROMPT,
-            allowEmpty = false)
-        text(
-            "nextSnapshotVersion",
-            "",
-            label = "Next snapshot version",
-            description = "Next snapshot version to set after release",
-            display = ParameterDisplay.PROMPT,
-            allowEmpty = false)
+          params {
+            text(
+                "releaseVersion",
+                "",
+                label = "Version to release",
+                display = ParameterDisplay.PROMPT,
+                allowEmpty = false,
+            )
+            text(
+                "nextSnapshotVersion",
+                "",
+                label = "Next snapshot version",
+                description = "Next snapshot version to set after release",
+                display = ParameterDisplay.PROMPT,
+                allowEmpty = false,
+            )
 
-        checkbox(
-            DRY_RUN,
-            "true",
-            "Dry run?",
-            description = "Whether to perform a dry run where nothing is published and released",
-            display = ParameterDisplay.PROMPT,
-            checked = "true",
-            unchecked = "false")
+            checkbox(
+                DRY_RUN,
+                "true",
+                "Dry run?",
+                description =
+                    "Whether to perform a dry run where nothing is published and released",
+                display = ParameterDisplay.PROMPT,
+                checked = "true",
+                unchecked = "false",
+            )
 
-        text("env.JRELEASER_DRY_RUN", "%$DRY_RUN%")
+            password("env.JRELEASER_GITHUB_TOKEN", "%github-pull-request-token%")
 
-        password("env.JRELEASER_GITHUB_TOKEN", "%github-pull-request-token%")
-        password("env.OSSSONATYPEORG_USERNAME", "%osssonatypeorg-username%")
-        password("env.OSSSONATYPEORG_PASSWORD", "%osssonatypeorg-password%")
-        password("env.SIGNING_KEY_PASSPHRASE", "%signing-key-passphrase%")
-      }
+            text("env.JRELEASER_DRY_RUN", "%$DRY_RUN%")
+            text("env.JRELEASER_PROJECT_VERSION", "%releaseVersion%")
 
-      steps {
-        setVersion("Set release version", "%releaseVersion%")
+            password("env.JRELEASER_GPG_PASSPHRASE", "%signing-key-passphrase%")
 
-        runMaven(JAVA_VERSION) {
-          this.name = "Build versioned packages"
-          goals = "deploy"
-          runnerArgs = "$MAVEN_DEFAULT_ARGS -Ppublication -Dmaven.test.skip -Dspotless.skip"
-        }
+            text("env.JRELEASER_MAVENCENTRAL_USERNAME", "%publish-username%")
+            password("env.JRELEASER_MAVENCENTRAL_TOKEN", "%publish-password%")
+          }
 
-        commitAndPush(
-            "Push release version",
-            "build: release version %releaseVersion%",
-            dryRunParameter = DRY_RUN)
+          steps {
+            setVersion("Set release version", "%releaseVersion%")
 
-        runMaven(JAVA_VERSION) {
-          this.name = "Release to Github"
-          goals = "jreleaser:auto-config-release"
-          runnerArgs = "$MAVEN_DEFAULT_ARGS -Prelease"
-        }
+            commitAndPush(
+                "Push release version",
+                "build: release version %releaseVersion%",
+                dryRunParameter = DRY_RUN,
+            )
 
-        setVersion("Set next snapshot version", "%nextSnapshotVersion%")
+            script {
+              scriptContent =
+                  """
+                #!/bin/bash
+                
+                set -eux
+                
+                apt-get update
+                apt-get install --yes build-essential curl git unzip zip
+                
+                # Get the jreleaser downloader
+                curl -sL https://raw.githubusercontent.com/jreleaser/release-action/refs/tags/2.4.2/get_jreleaser.java > get_jreleaser.java
 
-        commitAndPush(
-            "Push next snapshot version",
-            "build: update version to %nextSnapshotVersion%",
-            dryRunParameter = DRY_RUN)
+                # Download JReleaser with version = 1.18.0
+                java get_jreleaser.java 1.18.0
 
-        publishToMavenCentral("Publish to Maven Central", dryRunParameter = DRY_RUN)
-      }
+                if [ "%dry-run%" = "true" ]; then
+                  echo "we are on a dry run, only performing upload to maven central"
+                  export JRELEASER_MAVENCENTRAL_STAGE=UPLOAD
+                else
+                  echo "we will do a full deploy to maven central"
+                  export JRELEASER_MAVENCENTRAL_STAGE=FULL
+                fi
+                
+                # Execute JReleaser
+                java -jar jreleaser-cli.jar assemble
+                java -jar jreleaser-cli.jar full-release
+              """
+                      .trimIndent()
 
-      dependencies {
-        artifacts(AbsoluteId("Tools_ReleaseTool")) {
-          buildRule = lastSuccessful()
-          artifactRules = "rt.jar => lib"
-        }
-      }
+              dockerImagePlatform = ScriptBuildStep.ImagePlatform.Linux
+              dockerImage = "eclipse-temurin:11-jdk"
+              dockerRunParameters =
+                  "--volume /var/run/docker.sock:/var/run/docker.sock --volume %teamcity.build.checkoutDir%/signingkeysandbox:/root/.gnupg"
+            }
 
-      features { dockerSupport {} }
+            setVersion("Set next snapshot version", "%nextSnapshotVersion%")
 
-      requirements { runOnLinux(LinuxSize.SMALL) }
-    })
+            commitAndPush(
+                "Push next snapshot version",
+                "build: update version to %nextSnapshotVersion%",
+                dryRunParameter = DRY_RUN,
+            )
+          }
+
+          artifactRules =
+              """
+            +:target/maven-artifacts => artifacts
+            +:out/jreleaser => jreleaser
+            """
+                  .trimIndent()
+
+          requirements { runOnLinux(LinuxSize.SMALL) }
+        },
+    )
