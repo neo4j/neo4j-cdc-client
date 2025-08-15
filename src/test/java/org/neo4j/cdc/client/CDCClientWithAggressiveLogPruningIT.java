@@ -41,7 +41,7 @@ import reactor.test.StepVerifier;
 @Testcontainers
 public class CDCClientWithAggressiveLogPruningIT {
     @Container
-    private static final Neo4jContainer<?> neo4j = new Neo4jContainer<>("neo4j:5-enterprise")
+    private static final Neo4jContainer<?> neo4j = new Neo4jContainer<>(Neo4j.testImage())
             .withEnv("NEO4J_ACCEPT_LICENSE_AGREEMENT", "yes")
             .withNeo4jConfig("db.tx_log.rotation.retention_policy", "3 files")
             .withNeo4jConfig("db.tx_log.rotation.size", String.format("%d", 128 * 1024))
