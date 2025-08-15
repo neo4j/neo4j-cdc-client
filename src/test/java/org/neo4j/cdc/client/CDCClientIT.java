@@ -41,11 +41,11 @@ import reactor.test.StepVerifier;
 @Testcontainers
 public class CDCClientIT {
 
-    private static final String NEO4J_VERSION = "5";
+    private static final String NEO4J_VERSION = "2025";
 
     @SuppressWarnings("resource")
     @Container
-    private static final Neo4jContainer<?> neo4j = new Neo4jContainer<>("neo4j:" + NEO4J_VERSION + "-enterprise")
+    private static final Neo4jContainer<?> neo4j = new Neo4jContainer<>(Neo4j.testImage())
             .withEnv("NEO4J_ACCEPT_LICENSE_AGREEMENT", "yes")
             .withAdminPassword("passw0rd");
 

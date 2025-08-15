@@ -22,6 +22,7 @@ import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.AfterAll;
@@ -40,7 +41,7 @@ import reactor.test.StepVerifier;
 @Testcontainers
 public class CDCClientWithAggressiveLogPruningIT {
     @Container
-    private static final Neo4jContainer<?> neo4j = new Neo4jContainer<>("neo4j:5-enterprise")
+    private static final Neo4jContainer<?> neo4j = new Neo4jContainer<>(Neo4j.testImage())
             .withEnv("NEO4J_ACCEPT_LICENSE_AGREEMENT", "yes")
             .withNeo4jConfig("db.tx_log.rotation.retention_policy", "3 files")
             .withNeo4jConfig("db.tx_log.rotation.size", String.format("%d", 128 * 1024))
@@ -77,7 +78,11 @@ public class CDCClientWithAggressiveLogPruningIT {
             try (var session = driver.session(SessionConfig.forDatabase("neo4j"))) {
                 session.run(
                         "CREATE (n:Test) SET n.id = $id, n.data = $data",
-                        Map.of("id", i, "data", RandomStringUtils.random(1024, true, true)));
+                        Map.of(
+                                "id",
+                                i,
+                                "data",
+                                RandomStringUtils.random(1024, 0, 0, true, true, null, ThreadLocalRandom.current())));
             }
         }
 
@@ -109,7 +114,12 @@ public class CDCClientWithAggressiveLogPruningIT {
                     try (var session = driver.session(SessionConfig.forDatabase("neo4j"))) {
                         session.run(
                                 "CREATE (n:Test) SET n.id = $id, n.data = $data",
-                                Map.of("id", counter * 100 + j, "data", RandomStringUtils.random(1024, true, true)),
+                                Map.of(
+                                        "id",
+                                        counter * 100 + j,
+                                        "data",
+                                        RandomStringUtils.random(
+                                                1024, 0, 0, true, true, null, ThreadLocalRandom.current())),
                                 TransactionConfig.builder()
                                         .withMetadata(Map.of("app", "hr"))
                                         .build());
