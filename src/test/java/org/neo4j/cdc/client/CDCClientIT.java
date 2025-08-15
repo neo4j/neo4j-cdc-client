@@ -41,7 +41,7 @@ import reactor.test.StepVerifier;
 @Testcontainers
 public class CDCClientIT {
 
-    private static final String NEO4J_VERSION = "5";
+    private static final String NEO4J_VERSION = "2025";
 
     @SuppressWarnings("resource")
     @Container
