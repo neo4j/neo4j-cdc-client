@@ -59,7 +59,7 @@
         <maven-source-plugin.version>3.3.1</maven-source-plugin.version>
         <maven-surefire-plugin.version>3.5.3</maven-surefire-plugin.version>
         <neo4j-java-driver.version>4.4.20</neo4j-java-driver.version>
-        <netty-bom.version>4.1.124.Final</netty-bom.version>
+        <netty-bom.version>4.1.126.Final</netty-bom.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <reactive-streams.version>1.0.4</reactive-streams.version>
         <reactor-release-train.version>2024.0.9</reactor-release-train.version>
