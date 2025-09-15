@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.neo4j.connectors</groupId>
     <artifactId>cdc</artifactId>
-    <version>1.0.16</version>
+    <version>1.0.17-SNAPSHOT</version>
     <packaging>jar</packaging>
     <name>cdc</name>
     <description>CDC Client Library</description>
