@@ -22,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.time.*;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicReference;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -111,6 +112,25 @@ public class CDCClientIT {
         StepVerifier.create(client.query(current))
                 .assertNext(n -> assertThat(n).extracting(ChangeEvent::getEvent).isInstanceOf(NodeEvent.class))
                 .verifyComplete();
+    }
+
+    @Test
+    void lastKnownChangeIdIsReportedWhenNoResults() {
+        var client = new CDCClient(
+                driver,
+                Duration.ZERO,
+                EntitySelector.builder().withChangesTo(Set.of("NonExisting")).build());
+
+        var from = currentChangeId(driver.session());
+        try (Session session = driver.session()) {
+            session.run("CREATE ()").consume();
+        }
+        var last = currentChangeId(driver.session());
+        assertThat(last).isNotEqualTo(from);
+
+        var reported = new AtomicReference<ChangeIdentifier>();
+        StepVerifier.create(client.query(from, reported::set)).verifyComplete();
+        assertThat(reported.get()).isEqualTo(last);
     }
 
     @Test
@@ -284,7 +304,8 @@ public class CDCClientIT {
                     .consume();
 
             var nodes = session.run(
-                            "CREATE (p:Person), (a:Place) SET p = $person, a = $place RETURN elementId(p), elementId(a)",
+                            "CREATE (p:Person), (a:Place) SET p = $person, a = $place RETURN elementId(p),"
+                                    + " elementId(a)",
                             Map.of("person", Map.of("id", 1L), "place", Map.of("id", 48)))
                     .single();
             final var startElementId = nodes.get(0).asString();
@@ -293,7 +314,8 @@ public class CDCClientIT {
             current = currentChangeId(session);
 
             final var elementId = session.run(
-                            "MATCH (p:Person {id: 1}), (a:Place {id:48}) CREATE (p)-[b:BORN_IN]->(a) SET b = $props RETURN elementId(b)",
+                            "MATCH (p:Person {id: 1}), (a:Place {id:48}) CREATE (p)-[b:BORN_IN]->(a) SET b = $props"
+                                    + " RETURN elementId(b)",
                             Map.of("props", Map.of("on", LocalDate.of(1990, 5, 1))))
                     .single()
                     .get(0)
