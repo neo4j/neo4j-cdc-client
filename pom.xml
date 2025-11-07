@@ -417,6 +417,7 @@
                 <configuration>
                     <source>${java.version}</source>
                     <target>${java.version}</target>
+                    <release>${java.version}</release>
                     <compilerArgument>-Werror</compilerArgument>
                 </configuration>
             </plugin>

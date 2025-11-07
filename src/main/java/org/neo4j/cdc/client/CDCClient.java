@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import org.neo4j.cdc.client.model.ChangeEvent;
 import org.neo4j.cdc.client.model.ChangeIdentifier;
@@ -152,10 +153,23 @@ public class CDCClient implements CDCService {
 
     @Override
     public Flux<ChangeEvent> query(ChangeIdentifier from) {
+        return query(from, changeId -> {
+            // no-op
+        });
+    }
+
+    @Override
+    public Flux<ChangeEvent> query(
+            ChangeIdentifier from, Consumer<ChangeIdentifier> lastKnownChangeIdentifierWhenNoResults) {
         return Flux.usingWhen(
                         Mono.fromSupplier(() -> driver.rxSession(sessionConfigSupplier.sessionConfig())),
                         (RxSession session) -> Flux.from(session.readTransaction(
                                 tx -> {
+                                    var current = Mono.from(tx.run("CALL db.cdc.current()")
+                                                    .records())
+                                            .map(MapAccessor::asMap)
+                                            .map(ResultMapper::parseChangeIdentifier);
+
                                     var params = Map.of(
                                             "from",
                                             from.getId(),
@@ -167,9 +181,16 @@ public class CDCClient implements CDCService {
                                     log.trace("running db.cdc.query using parameters {}", params);
                                     RxResult result = tx.run(CDC_QUERY_STATEMENT, params);
 
-                                    return Flux.from(result.records())
+                                    return current.flatMapMany(changeId -> Flux.from(result.records())
                                             .map(MapAccessor::asMap)
-                                            .map(ResultMapper::parseChangeEvent);
+                                            .map(ResultMapper::parseChangeEvent)
+                                            .switchIfEmpty(Flux.defer(() -> {
+                                                log.info(
+                                                        "no new changes, reporting last seen change id as {}",
+                                                        changeId);
+                                                lastKnownChangeIdentifierWhenNoResults.accept(changeId);
+                                                return Flux.empty();
+                                            })));
                                 },
                                 transactionConfigSupplier.transactionConfig())),
                         RxSession::close)

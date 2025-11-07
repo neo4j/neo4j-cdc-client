@@ -16,6 +16,7 @@
  */
 package org.neo4j.cdc.client;
 
+import java.util.function.Consumer;
 import org.neo4j.cdc.client.model.ChangeEvent;
 import org.neo4j.cdc.client.model.ChangeIdentifier;
 import reactor.core.publisher.Flux;
@@ -48,6 +49,16 @@ public interface CDCService {
      * @return change events
      */
     Flux<ChangeEvent> query(ChangeIdentifier from);
+
+    /**
+     * Returns the changes that happened to the database after the given change identifier.
+     * The returned Flux completes when we reach the end of change stream.
+     *
+     * @param from change identifier to query changes from.
+     * @param lastKnownChangeIdentifierWhenNoResults a consumer that will be called with the last seen change identifier when no results are found.
+     * @return change events
+     */
+    Flux<ChangeEvent> query(ChangeIdentifier from, Consumer<ChangeIdentifier> lastKnownChangeIdentifierWhenNoResults);
 
     /**
      * Returns the changes that happened to the database after the given change identifier.
