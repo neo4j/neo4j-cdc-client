@@ -1,3 +1,4 @@
 #!/usr/bin/env sh
 
 ./mvnw sortpom:sort spotless:apply
+git update-index --again
