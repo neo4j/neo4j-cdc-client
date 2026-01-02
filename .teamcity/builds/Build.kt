@@ -22,22 +22,30 @@ class Build(
             if (forPullRequests)
                 buildType(WhiteListCheck("${name}-whitelist-check", "white-list check"))
             if (forPullRequests) dependentBuildType(PRCheck("${name}-pr-check", "pr check"))
-            dependentBuildType(
-                Maven(
-                    "${name}-build",
-                    "build",
-                    "test-compile",
-                    "",
-                ),
-            )
-            dependentBuildType(
-                Maven(
-                    "${name}-test",
-                    "test",
-                    "verify",
-                    size = LinuxSize.LARGE,
-                ),
-            )
+
+            parallel {
+              dependentBuildType(SemgrepCheck("${name}-semgrep-check", "semgrep check"))
+
+              sequential {
+                dependentBuildType(
+                    Maven(
+                        "${name}-build",
+                        "build",
+                        "test-compile",
+                        "",
+                    ),
+                )
+                dependentBuildType(
+                    Maven(
+                        "${name}-test",
+                        "test",
+                        "verify",
+                        size = LinuxSize.LARGE,
+                    ),
+                )
+              }
+            }
+
             dependentBuildType(complete)
             if (!forPullRequests)
                 collectArtifacts(dependentBuildType(Release("${name}-release", "release")))
