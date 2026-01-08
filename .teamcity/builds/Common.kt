@@ -15,6 +15,8 @@ const val MAVEN_DEFAULT_ARGS = "--no-transfer-progress --batch-mode --show-versi
 
 const val JAVA_VERSION = "11"
 
+const val SEMGREP_DOCKER_IMAGE = "semgrep/semgrep:1.146.0"
+
 enum class LinuxSize(val value: String) {
   SMALL("small"),
   LARGE("large")
