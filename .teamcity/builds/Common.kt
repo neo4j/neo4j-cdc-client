@@ -12,6 +12,8 @@ import jetbrains.buildServer.configs.kotlin.buildSteps.script
 const val GITHUB_OWNER = "neo4j"
 const val GITHUB_REPOSITORY = "neo4j-cdc-client"
 const val MAVEN_DEFAULT_ARGS = "--no-transfer-progress --batch-mode --show-version"
+const val FULL_GITHUB_REPOSITORY = "$GITHUB_OWNER/$GITHUB_REPOSITORY"
+const val GITHUB_URL = "https://github.com/$FULL_GITHUB_REPOSITORY"
 
 const val JAVA_VERSION = "11"
 
