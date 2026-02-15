@@ -155,6 +155,30 @@ public class CDCClientIT {
 
         StepVerifier.create(clientToSuccess.query(current)).verifyComplete();
 
+        var clientWithWriteAccessModeToSuccess = new CDCClient(
+                driver,
+                () -> SessionConfig.builder()
+                        .withDefaultAccessMode(AccessMode.WRITE)
+                        .build(),
+                () -> TransactionConfig.builder()
+                        .withMetadata(Map.of("app", "test"))
+                        .build(),
+                Duration.ofSeconds(1));
+
+        StepVerifier.create(clientWithWriteAccessModeToSuccess.query(current)).verifyComplete();
+
+        var clientWithReadAccessModeToSuccess = new CDCClient(
+                driver,
+                () -> SessionConfig.builder()
+                        .withDefaultAccessMode(AccessMode.READ)
+                        .build(),
+                () -> TransactionConfig.builder()
+                        .withMetadata(Map.of("app", "test"))
+                        .build(),
+                Duration.ofSeconds(1));
+
+        StepVerifier.create(clientWithReadAccessModeToSuccess.query(current)).verifyComplete();
+
         var clientToFail = new CDCClient(
                 driver,
                 () -> SessionConfig.builder().build(),
