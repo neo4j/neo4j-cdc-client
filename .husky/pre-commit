@@ -1,4 +1,4 @@
 #!/usr/bin/env sh
 
-./mvnw sortpom:sort spotless:apply
+$(git rev-parse --show-toplevel)/mvnw sortpom:sort spotless:apply
 git update-index --again
