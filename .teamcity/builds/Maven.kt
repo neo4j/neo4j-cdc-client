@@ -1,7 +1,6 @@
 package builds
 
 import jetbrains.buildServer.configs.kotlin.BuildType
-import jetbrains.buildServer.configs.kotlin.buildFeatures.dockerSupport
 import jetbrains.buildServer.configs.kotlin.toId
 
 open class Maven(
@@ -9,7 +8,7 @@ open class Maven(
     name: String,
     goals: String,
     args: String? = null,
-    javaVersion: String = JAVA_VERSION,
+    javaVersion: JavaVersion = JavaVersion.V_11,
     size: LinuxSize = LinuxSize.SMALL
 ) :
     BuildType({
@@ -23,7 +22,7 @@ open class Maven(
         }
       }
 
-      features { dockerSupport {} }
+      features { buildCache(javaVersion) }
 
       requirements { runOnLinux(size) }
     })

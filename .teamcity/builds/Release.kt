@@ -9,7 +9,7 @@ import jetbrains.buildServer.configs.kotlin.toId
 
 private const val DRY_RUN = "dry-run"
 
-class Release(id: String, name: String) :
+class Release(id: String, name: String, javaVersion: JavaVersion = JavaVersion.V_11) :
     BuildType(
         {
           this.id(id.toId())
@@ -72,15 +72,6 @@ class Release(id: String, name: String) :
                 
                 set -eux
                 
-                apt-get update
-                apt-get install --yes build-essential curl git unzip zip
-                
-                # Get the jreleaser downloader
-                curl -sL https://raw.githubusercontent.com/jreleaser/release-action/refs/tags/2.4.2/get_jreleaser.java > get_jreleaser.java
-
-                # Download JReleaser with version = 1.18.0
-                java get_jreleaser.java 1.18.0
-
                 if [ "%dry-run%" = "true" ]; then
                   echo "we are on a dry run, only performing upload to maven central"
                   export JRELEASER_MAVENCENTRAL_STAGE=UPLOAD
@@ -88,15 +79,16 @@ class Release(id: String, name: String) :
                   echo "we will do a full deploy to maven central"
                   export JRELEASER_MAVENCENTRAL_STAGE=FULL
                 fi
+                export MAVEN_ARGS="$MAVEN_DEFAULT_ARGS"
                 
                 # Execute JReleaser
-                java -jar jreleaser-cli.jar assemble
-                java -jar jreleaser-cli.jar full-release
+                jreleaser assemble
+                jreleaser full-release
               """
                       .trimIndent()
 
               dockerImagePlatform = ScriptBuildStep.ImagePlatform.Linux
-              dockerImage = "eclipse-temurin:11-jdk"
+              dockerImage = javaVersion.dockerImage
               dockerRunParameters =
                   "--volume /var/run/docker.sock:/var/run/docker.sock --volume %teamcity.build.checkoutDir%/signingkeysandbox:/root/.gnupg"
             }
@@ -116,6 +108,8 @@ class Release(id: String, name: String) :
             +:out/jreleaser => jreleaser
             """
                   .trimIndent()
+
+          features { buildCache(javaVersion) }
 
           requirements { runOnLinux(LinuxSize.SMALL) }
         },
