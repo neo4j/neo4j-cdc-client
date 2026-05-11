@@ -34,6 +34,7 @@ const val SEMGREP_DOCKER_IMAGE = "%ecr-registry-connectors%:semgrep-latest"
 // Look into Root Project's settings -> Connections
 const val ECR_CONNECTION_ID_ENG = "PROJECT_EXT_124"
 const val ECR_CONNECTION_ID_BUILD = "PROJECT_EXT_107"
+val DOCKER_REGISTRIES = sequenceOf(ECR_CONNECTION_ID_ENG, ECR_CONNECTION_ID_BUILD)
 
 enum class JavaVersion(val version: String, val dockerImage: String) {
   V_11(version = "11", dockerImage = "%ecr-registry-connectors%:jdk-11-latest"),
@@ -64,8 +65,7 @@ fun BuildFeatures.buildCache(javaVersion: JavaVersion) = buildCache {
 
 fun BuildFeatures.loginToECR() = dockerRegistryConnections {
   cleanupPushedImages = true
-  loginToRegistry = on { dockerRegistryId = ECR_CONNECTION_ID_ENG }
-  loginToRegistry = on { dockerRegistryId = ECR_CONNECTION_ID_BUILD }
+  loginToRegistry = on { dockerRegistryId = DOCKER_REGISTRIES.joinToString(",") }
 }
 
 fun BuildFeatures.enableCommitStatusPublisher() = commitStatusPublisher {
