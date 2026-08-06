@@ -6,7 +6,13 @@ import jetbrains.buildServer.configs.kotlin.toId
 import jetbrains.buildServer.configs.kotlin.triggers.schedule
 import jetbrains.buildServer.configs.kotlin.triggers.vcs
 
-class NightlyBuild(name: String) :
+class NightlyBuild(
+    name: String,
+    branchFilter: String = buildString {
+      appendLine("+:$DEFAULT_BRANCH")
+      appendLine("+:refs/heads/$DEFAULT_BRANCH")
+    }
+) :
     Project({
       this.id(name.toId())
       this.name = name
@@ -19,7 +25,7 @@ class NightlyBuild(name: String) :
       }
 
       bts.buildTypes().forEach {
-        it.thisVcs()
+        it.thisVcs(DEFAULT_BRANCH)
 
         it.features {
           loginToECR()
@@ -30,13 +36,13 @@ class NightlyBuild(name: String) :
       }
 
       complete.triggers {
-        vcs { enabled = false }
+        vcs {
+          enabled = false
+          this.branchFilter = branchFilter
+        }
 
         schedule {
-          branchFilter = buildString {
-            appendLine("+:main")
-            appendLine("+:refs/heads/main")
-          }
+          this.branchFilter = branchFilter
           schedulingPolicy = daily {
             hour = 7
             minute = 0
