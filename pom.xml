@@ -40,7 +40,7 @@
         <build-resources.version>2026.07.1</build-resources.version>
         <commons-collections4.version>4.5.0</commons-collections4.version>
         <commons-lang3.version>3.20.0</commons-lang3.version>
-        <java.version>11</java.version>
+        <java.version>17</java.version>
         <junit-jupiter.version>5.14.4</junit-jupiter.version>
         <license-maven-plugin.version>5.1.1</license-maven-plugin.version>
         <licensing-maven-plugin.version>1.7.12</licensing-maven-plugin.version>
