@@ -180,3 +180,5 @@ use `./mvnw spotless:apply` to format your code.
 For POM files, we are using [sortpom](https://github.com/Ekryd/sortpom) to have a tidier project object model. Remember
 that your builds will fail if your changes doesn't conform to the enforced rules, but you can use `./mvnw sortpom:sort`
 to format it accordingly.
+
+This is a commit to test the pipeline
