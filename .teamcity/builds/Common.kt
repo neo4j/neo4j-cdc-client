@@ -1,5 +1,6 @@
 package builds
 
+import builds.Neo4jCdcClientVcs.branchSpec
 import jetbrains.buildServer.configs.kotlin.*
 import jetbrains.buildServer.configs.kotlin.buildFeatures.PullRequests
 import jetbrains.buildServer.configs.kotlin.buildFeatures.buildCache
@@ -10,6 +11,7 @@ import jetbrains.buildServer.configs.kotlin.buildSteps.MavenBuildStep
 import jetbrains.buildServer.configs.kotlin.buildSteps.ScriptBuildStep
 import jetbrains.buildServer.configs.kotlin.buildSteps.maven
 import jetbrains.buildServer.configs.kotlin.buildSteps.script
+import jetbrains.buildServer.configs.kotlin.vcs.GitVcsRoot
 
 const val GITHUB_OWNER = "neo4j"
 const val GITHUB_REPOSITORY = "neo4j-cdc-client"
@@ -35,9 +37,10 @@ const val SEMGREP_DOCKER_IMAGE = "%ecr-registry-connectors%:semgrep-latest"
 const val ECR_CONNECTION_ID_ENG = "PROJECT_EXT_124"
 const val ECR_CONNECTION_ID_BUILD = "PROJECT_EXT_107"
 val DOCKER_REGISTRIES = sequenceOf(ECR_CONNECTION_ID_ENG, ECR_CONNECTION_ID_BUILD)
+const val DEFAULT_BRANCH = "2.0"
 
 enum class JavaVersion(val version: String, val dockerImage: String) {
-  V_11(version = "11", dockerImage = "%ecr-registry-connectors%:jdk-11-latest"),
+  V_17(version = "17", dockerImage = "%ecr-registry-connectors%:jdk-17-latest"),
 }
 
 enum class LinuxSize(val value: String) {
@@ -49,8 +52,27 @@ fun Requirements.runOnLinux(size: LinuxSize = LinuxSize.SMALL) {
   startsWith("cloud.amazon.agent-name-prefix", "linux-${size.value}")
 }
 
-fun BuildType.thisVcs() = vcs {
-  root(DslContext.settingsRoot)
+object Neo4jCdcClientVcs :
+    GitVcsRoot(
+        {
+          id("Connectors_CdcClient_Build")
+
+          name = "neo4j-cdc-client"
+          url = "git@github.com:neo4j/neo4j-cdc-client.git"
+          branch = "refs/heads/$DEFAULT_BRANCH"
+          branchSpec = "refs/heads/*"
+
+          authMethod = defaultPrivateKey { userName = "git" }
+        },
+    )
+
+fun BuildType.thisVcs(forBranch: String) = vcs {
+  root(Neo4jCdcClientVcs)
+
+  branchSpec = buildString {
+    appendLine("-:*")
+    appendLine("+:$forBranch")
+  }
 
   cleanCheckout = true
 }
@@ -81,6 +103,10 @@ fun BuildFeatures.enablePullRequests() = pullRequests {
   provider = github {
     authType = token { token = "%github-pull-request-token%" }
     filterAuthorRole = PullRequests.GitHubRoleFilter.EVERYBODY
+    filterTargetBranch = buildString {
+      appendLine("+:$DEFAULT_BRANCH")
+      appendLine("+:refs/heads/$DEFAULT_BRANCH")
+    }
   }
 }
 
@@ -101,7 +127,7 @@ fun collectArtifacts(buildType: BuildType): BuildType {
 }
 
 fun BuildSteps.runMaven(
-    javaVersion: JavaVersion = JavaVersion.V_11,
+    javaVersion: JavaVersion = JavaVersion.V_17,
     init: MavenBuildStep.() -> Unit
 ): MavenBuildStep {
   val maven =
