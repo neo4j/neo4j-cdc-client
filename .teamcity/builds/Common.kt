@@ -40,7 +40,7 @@ val DOCKER_REGISTRIES = sequenceOf(ECR_CONNECTION_ID_ENG, ECR_CONNECTION_ID_BUIL
 const val DEFAULT_BRANCH = "main"
 
 enum class JavaVersion(val version: String, val dockerImage: String) {
-  V_17(version = "17", dockerImage = "%ecr-registry-connectors%:jdk-17-latest"),
+  V_11(version = "11", dockerImage = "%ecr-registry-connectors%:jdk-11-latest"),
 }
 
 enum class LinuxSize(val value: String) {
@@ -127,7 +127,7 @@ fun collectArtifacts(buildType: BuildType): BuildType {
 }
 
 fun BuildSteps.runMaven(
-    javaVersion: JavaVersion = JavaVersion.V_17,
+    javaVersion: JavaVersion = JavaVersion.V_11,
     init: MavenBuildStep.() -> Unit
 ): MavenBuildStep {
   val maven =
