@@ -1,4 +1,6 @@
 import builds.Build
+import builds.DEFAULT_BRANCH
+import builds.Neo4jCdcClientVcs
 import builds.NightlyBuild
 import jetbrains.buildServer.configs.kotlin.project
 import jetbrains.buildServer.configs.kotlin.version
@@ -15,14 +17,16 @@ project {
     password("semgrep-app-token", "%semgrep-token%")
   }
 
+  vcsRoot(Neo4jCdcClientVcs)
+
   subProject(
       Build(
           name = "main",
           branchFilter =
-              """
-                +:main
-              """
-                  .trimIndent(),
+              buildString {
+                appendLine("+:$DEFAULT_BRANCH")
+                appendLine("+:refs/heads/$DEFAULT_BRANCH")
+              },
           triggerRules =
               """
                 -:comment=^build.*release version.*:**
@@ -34,10 +38,10 @@ project {
       Build(
           name = "pull-request",
           branchFilter =
-              """
-                +:pull/*
-              """
-                  .trimIndent(),
+              buildString {
+                appendLine("+:pull/*")
+                appendLine("+:refs/heads/pull/*")
+              },
           forPullRequests = true))
   subProject(NightlyBuild("nightly"))
 }
