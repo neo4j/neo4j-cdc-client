@@ -16,23 +16,50 @@
  */
 package org.neo4j.cdc.client;
 
-import static java.util.Collections.*;
+import static java.util.Collections.emptyMap;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-import java.time.*;
-import java.util.*;
+import java.time.Duration;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.OffsetTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.neo4j.cdc.client.model.*;
+import org.neo4j.cdc.client.model.CaptureMode;
+import org.neo4j.cdc.client.model.ChangeEvent;
+import org.neo4j.cdc.client.model.ChangeIdentifier;
+import org.neo4j.cdc.client.model.EntityOperation;
+import org.neo4j.cdc.client.model.EventType;
+import org.neo4j.cdc.client.model.Node;
+import org.neo4j.cdc.client.model.NodeEvent;
+import org.neo4j.cdc.client.model.NodeState;
+import org.neo4j.cdc.client.model.RelationshipEvent;
+import org.neo4j.cdc.client.model.RelationshipState;
 import org.neo4j.cdc.client.selector.EntitySelector;
 import org.neo4j.cdc.client.selector.NodeSelector;
 import org.neo4j.cdc.client.selector.RelationshipSelector;
-import org.neo4j.driver.*;
+import org.neo4j.driver.AccessMode;
+import org.neo4j.driver.AuthTokens;
+import org.neo4j.driver.Driver;
+import org.neo4j.driver.GraphDatabase;
+import org.neo4j.driver.Session;
+import org.neo4j.driver.SessionConfig;
+import org.neo4j.driver.TransactionConfig;
+import org.neo4j.driver.Values;
 import org.neo4j.driver.exceptions.FatalDiscoveryException;
 import org.testcontainers.containers.Neo4jContainer;
 import org.testcontainers.junit.jupiter.Container;
@@ -41,8 +68,6 @@ import reactor.test.StepVerifier;
 
 @Testcontainers
 public class CDCClientIT {
-
-    private static final String NEO4J_VERSION = "2025";
 
     @SuppressWarnings("resource")
     @Container

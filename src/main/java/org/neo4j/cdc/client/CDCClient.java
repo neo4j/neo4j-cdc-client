@@ -32,9 +32,9 @@ import org.neo4j.driver.AccessMode;
 import org.neo4j.driver.Driver;
 import org.neo4j.driver.SessionConfig;
 import org.neo4j.driver.TransactionConfig;
-import org.neo4j.driver.reactive.RxResult;
-import org.neo4j.driver.reactive.RxSession;
-import org.neo4j.driver.reactive.RxTransactionWork;
+import org.neo4j.driver.reactivestreams.ReactiveResult;
+import org.neo4j.driver.reactivestreams.ReactiveSession;
+import org.neo4j.driver.reactivestreams.ReactiveTransactionCallback;
 import org.neo4j.driver.types.MapAccessor;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
@@ -168,28 +168,29 @@ public class CDCClient implements CDCService {
         var sessionConfig = sessionConfigSupplier.sessionConfig();
 
         return Flux.usingWhen(
-                        Mono.fromSupplier(() -> driver.rxSession(sessionConfig)),
-                        (RxSession session) -> {
+                        Mono.fromSupplier(() -> driver.session(ReactiveSession.class, sessionConfig)),
+                        (ReactiveSession session) -> {
                             if (sessionConfig.defaultAccessMode() == AccessMode.WRITE) {
-                                return Flux.from(session.writeTransaction(
+                                return Flux.from(session.executeWrite(
                                         queryChangesWork(from, lastKnownChangeIdentifierWhenNoResults),
                                         transactionConfigSupplier.transactionConfig()));
                             } else {
-                                return Flux.from(session.readTransaction(
+                                return Flux.from(session.executeRead(
                                         queryChangesWork(from, lastKnownChangeIdentifierWhenNoResults),
                                         transactionConfigSupplier.transactionConfig()));
                             }
                         },
-                        RxSession::close)
+                        ReactiveSession::close)
                 .map(this::applyPropertyFilters)
                 .doOnSubscribe(s -> log.trace("subscribed to cdc query"))
                 .doOnComplete(() -> log.trace("subscription to cdc query completed"));
     }
 
-    private @NonNull RxTransactionWork<Publisher<ChangeEvent>> queryChangesWork(
+    private @NonNull ReactiveTransactionCallback<Publisher<ChangeEvent>> queryChangesWork(
             ChangeIdentifier from, Consumer<ChangeIdentifier> lastKnownChangeIdentifierWhenNoResults) {
         return tx -> {
-            var current = Mono.from(tx.run("CALL db.cdc.current()").records())
+            var current = Mono.from(tx.run("CALL db.cdc.current()"))
+                    .flatMap(result -> Mono.from(result.records()))
                     .map(MapAccessor::asMap)
                     .map(ResultMapper::parseChangeIdentifier);
 
@@ -199,17 +200,18 @@ public class CDCClient implements CDCService {
                     "selectors",
                     selectors.stream().map(Selector::asMap).collect(Collectors.toList()));
 
-            log.trace("running db.cdc.query using parameters {}", params);
-            RxResult result = tx.run(CDC_QUERY_STATEMENT, params);
-
-            return current.flatMapMany(changeId -> Flux.from(result.records())
-                    .map(MapAccessor::asMap)
-                    .map(ResultMapper::parseChangeEvent)
-                    .switchIfEmpty(Flux.defer(() -> {
-                        log.info("no new changes, reporting last seen change id as {}", changeId);
-                        lastKnownChangeIdentifierWhenNoResults.accept(changeId);
-                        return Flux.empty();
-                    })));
+            return current.flatMapMany(changeId -> {
+                log.trace("running db.cdc.query using parameters {}", params);
+                return Flux.from(tx.run(CDC_QUERY_STATEMENT, params))
+                        .flatMap(ReactiveResult::records)
+                        .map(MapAccessor::asMap)
+                        .map(ResultMapper::parseChangeEvent)
+                        .switchIfEmpty(Flux.defer(() -> {
+                            log.info("no new changes, reporting last seen change id as {}", changeId);
+                            lastKnownChangeIdentifierWhenNoResults.accept(changeId);
+                            return Flux.empty();
+                        }));
+            });
         };
     }
 
@@ -218,17 +220,17 @@ public class CDCClient implements CDCService {
         var cursor = new AtomicReference<>(from);
 
         var query = Flux.usingWhen(
-                Mono.fromSupplier(() -> driver.rxSession(sessionConfig)),
-                (RxSession session) -> {
+                Mono.fromSupplier(() -> driver.session(ReactiveSession.class, sessionConfig)),
+                (ReactiveSession session) -> {
                     if (sessionConfig.defaultAccessMode() == AccessMode.WRITE) {
-                        return Flux.from(session.writeTransaction(
+                        return Flux.from(session.executeWrite(
                                 streamChangesWork(cursor), transactionConfigSupplier.transactionConfig()));
                     } else {
-                        return Flux.from(session.readTransaction(
+                        return Flux.from(session.executeRead(
                                 streamChangesWork(cursor), transactionConfigSupplier.transactionConfig()));
                     }
                 },
-                RxSession::close);
+                ReactiveSession::close);
 
         return Flux.concat(query, Mono.delay(streamingPollInterval).mapNotNull(x -> null))
                 .map(this::applyPropertyFilters)
@@ -238,10 +240,11 @@ public class CDCClient implements CDCService {
                 .doOnComplete(() -> log.trace("subscription to cdc stream completed"));
     }
 
-    private @NonNull RxTransactionWork<Publisher<ChangeEvent>> streamChangesWork(
+    private @NonNull ReactiveTransactionCallback<Publisher<ChangeEvent>> streamChangesWork(
             AtomicReference<ChangeIdentifier> cursor) {
         return tx -> {
-            var current = Mono.from(tx.run("CALL db.cdc.current()").records())
+            var current = Mono.from(tx.run("CALL db.cdc.current()"))
+                    .flatMap(result -> Mono.from(result.records()))
                     .map(MapAccessor::asMap)
                     .map(ResultMapper::parseChangeIdentifier);
 
@@ -251,16 +254,17 @@ public class CDCClient implements CDCService {
                     "selectors",
                     selectors.stream().map(Selector::asMap).collect(Collectors.toList()));
 
-            log.trace("running db.cdc.query using parameters {}", params);
-            RxResult result = tx.run(CDC_QUERY_STATEMENT, params);
-
-            return current.flatMapMany(changeId -> Flux.from(result.records())
-                    .map(MapAccessor::asMap)
-                    .map(ResultMapper::parseChangeEvent)
-                    .switchIfEmpty(Flux.defer(() -> {
-                        cursor.set(changeId);
-                        return Flux.empty();
-                    })));
+            return current.flatMapMany(changeId -> {
+                log.trace("running db.cdc.query using parameters {}", params);
+                return Flux.from(tx.run(CDC_QUERY_STATEMENT, params))
+                        .flatMap(ReactiveResult::records)
+                        .map(MapAccessor::asMap)
+                        .map(ResultMapper::parseChangeEvent)
+                        .switchIfEmpty(Flux.defer(() -> {
+                            cursor.set(changeId);
+                            return Flux.empty();
+                        }));
+            });
         };
     }
 
@@ -281,28 +285,29 @@ public class CDCClient implements CDCService {
     private Mono<ChangeIdentifier> queryForChangeIdentifier(String query, String description) {
         var sessionConfig = sessionConfigSupplier.sessionConfig();
         return Mono.usingWhen(
-                        Mono.fromSupplier(() -> driver.rxSession(sessionConfig)),
-                        (RxSession session) -> {
+                        Mono.fromSupplier(() -> driver.session(ReactiveSession.class, sessionConfig)),
+                        (ReactiveSession session) -> {
                             if (sessionConfig.defaultAccessMode() == AccessMode.WRITE) {
-                                return Mono.from(session.writeTransaction(
+                                return Mono.from(session.executeWrite(
                                         queryChangeIdentifierWork(query),
                                         transactionConfigSupplier.transactionConfig()));
                             } else {
-                                return Mono.from(session.readTransaction(
+                                return Mono.from(session.executeRead(
                                         queryChangeIdentifierWork(query),
                                         transactionConfigSupplier.transactionConfig()));
                             }
                         },
-                        RxSession::close)
+                        ReactiveSession::close)
                 .doOnSubscribe(s -> log.trace("subscribed to {}", description))
                 .doOnSuccess(c -> log.trace("subscription to {} completed with '{}'", description, c))
                 .doOnError(t -> log.error("subscription to {} failed", description, t));
     }
 
-    private static @NonNull RxTransactionWork<Publisher<ChangeIdentifier>> queryChangeIdentifierWork(String query) {
-        return tx -> {
-            RxResult result = tx.run(query);
-            return Mono.from(result.records()).map(MapAccessor::asMap).map(ResultMapper::parseChangeIdentifier);
-        };
+    private static @NonNull ReactiveTransactionCallback<Publisher<ChangeIdentifier>> queryChangeIdentifierWork(
+            String query) {
+        return tx -> Mono.from(tx.run(query))
+                .flatMap(result -> Mono.from(result.records()))
+                .map(MapAccessor::asMap)
+                .map(ResultMapper::parseChangeIdentifier);
     }
 }
