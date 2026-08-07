@@ -1,8 +1,6 @@
 version: 2
-
 updates:
-  - &maven
-    package-ecosystem: "maven"
+  - package-ecosystem: "maven"
     directory: "/"
     schedule:
       interval: "daily"
@@ -10,12 +8,15 @@ updates:
       default-days: 3
     open-pull-requests-limit: 10
     target-branch: "main"
-
-  - <<: *maven
+  - package-ecosystem: "maven"
+    directory: "/"
+    schedule:
+      interval: "daily"
+    cooldown:
+      default-days: 3
+    open-pull-requests-limit: 10
     target-branch: "2.0"
-
-  - &npm
-    package-ecosystem: "npm"
+  - package-ecosystem: "npm"
     directory: "/"
     schedule:
       interval: "weekly"
@@ -25,6 +26,13 @@ updates:
       dev-deps:
         dependency-type: "development"
     target-branch: "main"
-
-  - <<: *npm
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 3
+    groups:
+      dev-deps:
+        dependency-type: "development"
     target-branch: "2.0"
