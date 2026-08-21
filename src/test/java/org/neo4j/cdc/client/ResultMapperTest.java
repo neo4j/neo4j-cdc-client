@@ -31,13 +31,64 @@ import org.neo4j.cdc.client.model.*;
 
 public class ResultMapperTest {
 
+    private static final String CHANGE_IDENTIFIER_VALUE = "AlvVSy-4s0yaia31SXmHHz8AAAAAAAAACgAAAAAAAAAA";
+
     @Test
     void shouldParseChangeIdentifier() {
-        String changeIdentifierValue = "AlvVSy-4s0yaia31SXmHHz8AAAAAAAAACgAAAAAAAAAA";
+        String changeIdentifierValue = CHANGE_IDENTIFIER_VALUE;
         Map<String, Object> message = new HashMap<>();
         message.put("id", changeIdentifierValue);
         ChangeIdentifier result = ResultMapper.parseChangeIdentifier(message);
-        assertEquals(result.getId(), changeIdentifierValue);
+        assertEquals(changeIdentifierValue, result.getId());
+        assertNull(result.getTxId());
+        assertNull(result.getTxStartTime());
+        assertNull(result.getTxCommitTime());
+    }
+
+    @Test
+    void shouldParseChangeIdentifierWithTransactionDetails() {
+        String changeIdentifierValue = CHANGE_IDENTIFIER_VALUE;
+        var txStartTime = ZonedDateTime.parse("2023-08-17T09:14:35.636Z");
+        var txCommitTime = ZonedDateTime.parse("2023-08-17T09:14:35.666Z");
+
+        Map<String, Object> message = new HashMap<>();
+        message.put("id", changeIdentifierValue);
+        message.put("txId", 3L);
+        message.put("txStartTime", txStartTime);
+        message.put("txCommitTime", txCommitTime);
+
+        ChangeIdentifier result = ResultMapper.parseChangeIdentifier(message);
+        assertEquals(changeIdentifierValue, result.getId());
+        assertEquals(3L, result.getTxId());
+        assertEquals(txStartTime, result.getTxStartTime());
+        assertEquals(txCommitTime, result.getTxCommitTime());
+    }
+
+    @Test
+    void shouldParseChangeIdentifierWithTransactionDetailsAsStrings() {
+        Map<String, Object> message = new HashMap<>();
+        message.put("id", CHANGE_IDENTIFIER_VALUE);
+        message.put("txId", 3L);
+        message.put("txStartTime", "2023-08-17T09:14:35.636000000Z");
+        message.put("txCommitTime", "2023-08-17T09:14:35.666000000Z");
+
+        ChangeIdentifier result = ResultMapper.parseChangeIdentifier(message);
+        assertEquals(ZonedDateTime.parse("2023-08-17T09:14:35.636Z"), result.getTxStartTime());
+        assertEquals(ZonedDateTime.parse("2023-08-17T09:14:35.666Z"), result.getTxCommitTime());
+    }
+
+    @Test
+    void shouldChangeIdentifierEqualityOnlyDependOnId() {
+        String changeIdentifierValue = CHANGE_IDENTIFIER_VALUE;
+        var withoutDetails = new ChangeIdentifier(changeIdentifierValue);
+        var withDetails = new ChangeIdentifier(
+                changeIdentifierValue,
+                3L,
+                ZonedDateTime.parse("2023-08-17T09:14:35.636Z"),
+                ZonedDateTime.parse("2023-08-17T09:14:35.666Z"));
+
+        assertEquals(withoutDetails, withDetails);
+        assertEquals(withoutDetails.hashCode(), withDetails.hashCode());
     }
 
     @Test
@@ -72,30 +123,30 @@ public class ResultMapperTest {
         event.put("labels", Collections.singletonList("User"));
 
         Map<String, Object> message = new HashMap<>();
-        message.put("id", "AlvVSy-4s0yaia31SXmHHz8AAAAAAAAACgAAAAAAAAAA");
+        message.put("id", CHANGE_IDENTIFIER_VALUE);
         message.put("txId", 3L);
         message.put("seq", 1L);
         message.put("metadata", metadata);
         message.put("event", event);
 
         ChangeEvent changeEvent = ResultMapper.parseChangeEvent(message);
-        assertEquals(changeEvent.getId().getId(), "AlvVSy-4s0yaia31SXmHHz8AAAAAAAAACgAAAAAAAAAA");
-        assertEquals(changeEvent.getTxId(), 3L);
-        assertEquals(changeEvent.getSeq(), 1);
+        assertEquals(CHANGE_IDENTIFIER_VALUE, changeEvent.getId().getId());
+        assertEquals(3L, changeEvent.getTxId());
+        assertEquals(1, changeEvent.getSeq());
 
         checkMetadata(changeEvent.getMetadata());
         Event changeEventEvent = changeEvent.getEvent();
         assertInstanceOf(NodeEvent.class, changeEventEvent);
         NodeEvent nodeEvent = (NodeEvent) changeEventEvent;
-        assertEquals(nodeEvent.getElementId(), "4:5bd54b2f-b8b3-4c9a-89ad-f54979871f3f:0");
+        assertEquals("4:5bd54b2f-b8b3-4c9a-89ad-f54979871f3f:0", nodeEvent.getElementId());
         assertEquals(nodeEvent.getKeys(), emptyMap());
-        assertEquals(nodeEvent.getEventType(), EventType.NODE);
-        assertEquals(nodeEvent.getLabels().get(0), "User");
-        assertEquals(nodeEvent.getOperation(), EntityOperation.CREATE);
+        assertEquals(EventType.NODE, nodeEvent.getEventType());
+        assertEquals("User", nodeEvent.getLabels().get(0));
+        assertEquals(EntityOperation.CREATE, nodeEvent.getOperation());
         assertNull(nodeEvent.getBefore());
-        assertEquals(nodeEvent.getAfter().getProperties().get("name"), "someone");
-        assertEquals(nodeEvent.getAfter().getProperties().get("real_name"), "Some real name");
-        assertEquals(nodeEvent.getAfter().getLabels().get(0), "User");
+        assertEquals("someone", nodeEvent.getAfter().getProperties().get("name"));
+        assertEquals("Some real name", nodeEvent.getAfter().getProperties().get("real_name"));
+        assertEquals("User", nodeEvent.getAfter().getLabels().get(0));
     }
 
     @Test
@@ -140,46 +191,47 @@ public class ResultMapperTest {
         event.put("type", "ACTED_IN");
 
         Map<String, Object> message = new HashMap<>();
-        message.put("id", "AlvVSy-4s0yaia31SXmHHz8AAAAAAAAACgAAAAAAAAAA");
+        message.put("id", CHANGE_IDENTIFIER_VALUE);
         message.put("txId", 4L);
         message.put("seq", 2L);
         message.put("metadata", metadata);
         message.put("event", event);
 
         ChangeEvent changeEvent = ResultMapper.parseChangeEvent(message);
-        assertEquals(changeEvent.getId().getId(), "AlvVSy-4s0yaia31SXmHHz8AAAAAAAAACgAAAAAAAAAA");
-        assertEquals(changeEvent.getTxId(), 4L);
-        assertEquals(changeEvent.getSeq(), 2);
+        assertEquals(CHANGE_IDENTIFIER_VALUE, changeEvent.getId().getId());
+        assertEquals(4L, changeEvent.getTxId());
+        assertEquals(2, changeEvent.getSeq());
         checkMetadata(changeEvent.getMetadata());
         Event changeEventEvent = changeEvent.getEvent();
         assertInstanceOf(RelationshipEvent.class, changeEventEvent);
         RelationshipEvent relationshipEvent = (RelationshipEvent) changeEventEvent;
-        assertEquals(relationshipEvent.getElementId(), "5:6a4af4ff-da3a-49e7-ae71-2c0ac3c1fc1a:0");
-        assertEquals(relationshipEvent.getType(), "ACTED_IN");
-        assertEquals(relationshipEvent.getOperation(), EntityOperation.CREATE);
-        assertEquals(relationshipEvent.getEventType(), EventType.RELATIONSHIP);
+        assertEquals("5:6a4af4ff-da3a-49e7-ae71-2c0ac3c1fc1a:0", relationshipEvent.getElementId());
+        assertEquals("ACTED_IN", relationshipEvent.getType());
+        assertEquals(EntityOperation.CREATE, relationshipEvent.getOperation());
+        assertEquals(EventType.RELATIONSHIP, relationshipEvent.getEventType());
         assertNull(relationshipEvent.getBefore());
-        assertEquals(relationshipEvent.getAfter().getProperties().get("roles"), "Jack Swigert");
+        assertEquals(
+                "Jack Swigert", relationshipEvent.getAfter().getProperties().get("roles"));
 
         Node startElement = relationshipEvent.getStart();
-        assertEquals(startElement.getElementId(), "4:6a4af4ff-da3a-49e7-ae71-2c0ac3c1fc1a:0");
+        assertEquals("4:6a4af4ff-da3a-49e7-ae71-2c0ac3c1fc1a:0", startElement.getElementId());
         assertEquals(startElement.getKeys(), emptyMap());
-        assertEquals(startElement.getLabels().get(0), "PERSON");
+        assertEquals("PERSON", startElement.getLabels().get(0));
 
         Node endElement = relationshipEvent.getEnd();
-        assertEquals(endElement.getElementId(), "4:6a4af4ff-da3a-49e7-ae71-2c0ac3c1fc1a:1");
+        assertEquals("4:6a4af4ff-da3a-49e7-ae71-2c0ac3c1fc1a:1", endElement.getElementId());
         assertEquals(endElement.getKeys(), emptyMap());
-        assertEquals(endElement.getLabels().get(0), "MOVIE");
+        assertEquals("MOVIE", endElement.getLabels().get(0));
     }
 
     private void checkMetadata(Metadata metadata) {
-        assertEquals(metadata.getExecutingUser(), "neo4j");
-        assertEquals(metadata.getConnectionClient(), "172.17.0.1:44484");
-        assertEquals(metadata.getAuthenticatedUser(), "neo4j");
-        assertEquals(metadata.getCaptureMode(), CaptureMode.FULL);
-        assertEquals(metadata.getServerId(), "60b75468");
-        assertEquals(metadata.getConnectionType(), "bolt");
-        assertEquals(metadata.getConnectionServer(), "172.17.0.2:7687");
+        assertEquals("neo4j", metadata.getExecutingUser());
+        assertEquals("172.17.0.1:44484", metadata.getConnectionClient());
+        assertEquals("neo4j", metadata.getAuthenticatedUser());
+        assertEquals(CaptureMode.FULL, metadata.getCaptureMode());
+        assertEquals("60b75468", metadata.getServerId());
+        assertEquals("bolt", metadata.getConnectionType());
+        assertEquals("172.17.0.2:7687", metadata.getConnectionServer());
         assertEquals(
                 metadata.getTxStartTime(),
                 ZonedDateTime.parse(
