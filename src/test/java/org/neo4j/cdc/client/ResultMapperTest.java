@@ -210,7 +210,8 @@ public class ResultMapperTest {
         assertEquals(EntityOperation.CREATE, relationshipEvent.getOperation());
         assertEquals(EventType.RELATIONSHIP, relationshipEvent.getEventType());
         assertNull(relationshipEvent.getBefore());
-        assertEquals("Jack Swigert", relationshipEvent.getAfter().getProperties().get("roles"));
+        assertEquals(
+                "Jack Swigert", relationshipEvent.getAfter().getProperties().get("roles"));
 
         Node startElement = relationshipEvent.getStart();
         assertEquals("4:6a4af4ff-da3a-49e7-ae71-2c0ac3c1fc1a:0", startElement.getElementId());
