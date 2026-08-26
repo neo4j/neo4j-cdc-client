@@ -19,6 +19,7 @@ package org.neo4j.cdc.client;
 import static java.util.Collections.emptyMap;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.time.Duration;
@@ -148,30 +149,24 @@ public class CDCClientIT {
     }
 
     /**
-     * {@code txId} and {@code txStartTime} are not part of the {@code db.cdc.current} output on every server, so
-     * only assert them where the server actually yields the columns.
+     * {@code db.cdc.earliest} yields only {@code id}, so a change identifier obtained from it never carries a
+     * commit time.
      */
     @Test
-    void currentReturnsRemainingTransactionDetailsWhenSupported() {
-        var columns = currentColumns();
-        assumeTrue(
-                columns.containsAll(Set.of("txId", "txStartTime")),
-                "server does not surface txId/txStartTime on db.cdc.current");
-
+    void earliestDoesNotReturnTransactionDetails() {
         var client = new CDCClient(driver, Duration.ZERO);
 
-        StepVerifier.create(client.current())
+        StepVerifier.create(client.earliest())
                 .assertNext(cv -> {
-                    assertNotNull(cv.getTxId());
-                    assertNotNull(cv.getTxStartTime());
-                    assertThat(cv.getTxCommitTime()).isAfterOrEqualTo(cv.getTxStartTime());
+                    assertNotNull(cv.getId());
+                    assertNull(cv.getTxCommitTime());
                 })
                 .verifyComplete();
     }
 
     /**
-     * Columns yielded by {@code db.cdc.current} on the server under test. Transaction detail columns are only
-     * present on new enough servers, so assertions on them have to be guarded.
+     * Columns yielded by {@code db.cdc.current} on the server under test. The {@code txCommitTime} column is only
+     * present on new enough servers, so assertions on it have to be guarded.
      */
     private static List<String> currentColumns() {
         try (var session = driver.session()) {

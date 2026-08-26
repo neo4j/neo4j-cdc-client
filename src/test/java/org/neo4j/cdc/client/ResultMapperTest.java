@@ -40,40 +40,43 @@ public class ResultMapperTest {
         message.put("id", changeIdentifierValue);
         ChangeIdentifier result = ResultMapper.parseChangeIdentifier(message);
         assertEquals(changeIdentifierValue, result.getId());
-        assertNull(result.getTxId());
-        assertNull(result.getTxStartTime());
         assertNull(result.getTxCommitTime());
     }
 
     @Test
-    void shouldParseChangeIdentifierWithTransactionDetails() {
+    void shouldParseChangeIdentifierWithTransactionCommitTime() {
         String changeIdentifierValue = CHANGE_IDENTIFIER_VALUE;
-        var txStartTime = ZonedDateTime.parse("2023-08-17T09:14:35.636Z");
         var txCommitTime = ZonedDateTime.parse("2023-08-17T09:14:35.666Z");
 
         Map<String, Object> message = new HashMap<>();
         message.put("id", changeIdentifierValue);
-        message.put("txId", 3L);
-        message.put("txStartTime", txStartTime);
         message.put("txCommitTime", txCommitTime);
 
         ChangeIdentifier result = ResultMapper.parseChangeIdentifier(message);
         assertEquals(changeIdentifierValue, result.getId());
-        assertEquals(3L, result.getTxId());
-        assertEquals(txStartTime, result.getTxStartTime());
         assertEquals(txCommitTime, result.getTxCommitTime());
     }
 
     @Test
-    void shouldParseChangeIdentifierWithTransactionDetailsAsStrings() {
+    void shouldParseChangeIdentifierWithTransactionCommitTimeAsString() {
         Map<String, Object> message = new HashMap<>();
         message.put("id", CHANGE_IDENTIFIER_VALUE);
-        message.put("txId", 3L);
-        message.put("txStartTime", "2023-08-17T09:14:35.636000000Z");
         message.put("txCommitTime", "2023-08-17T09:14:35.666000000Z");
 
         ChangeIdentifier result = ResultMapper.parseChangeIdentifier(message);
-        assertEquals(ZonedDateTime.parse("2023-08-17T09:14:35.636Z"), result.getTxStartTime());
+        assertEquals(ZonedDateTime.parse("2023-08-17T09:14:35.666Z"), result.getTxCommitTime());
+    }
+
+    @Test
+    void shouldIgnoreUnknownFieldsWhenParsingChangeIdentifier() {
+        Map<String, Object> message = new HashMap<>();
+        message.put("id", CHANGE_IDENTIFIER_VALUE);
+        message.put("txCommitTime", "2023-08-17T09:14:35.666000000Z");
+        message.put("txId", 3L);
+        message.put("txStartTime", "2023-08-17T09:14:35.636000000Z");
+
+        ChangeIdentifier result = ResultMapper.parseChangeIdentifier(message);
+        assertEquals(CHANGE_IDENTIFIER_VALUE, result.getId());
         assertEquals(ZonedDateTime.parse("2023-08-17T09:14:35.666Z"), result.getTxCommitTime());
     }
 
@@ -81,11 +84,7 @@ public class ResultMapperTest {
     void shouldChangeIdentifierEqualityOnlyDependOnId() {
         String changeIdentifierValue = CHANGE_IDENTIFIER_VALUE;
         var withoutDetails = new ChangeIdentifier(changeIdentifierValue);
-        var withDetails = new ChangeIdentifier(
-                changeIdentifierValue,
-                3L,
-                ZonedDateTime.parse("2023-08-17T09:14:35.636Z"),
-                ZonedDateTime.parse("2023-08-17T09:14:35.666Z"));
+        var withDetails = new ChangeIdentifier(changeIdentifierValue, ZonedDateTime.parse("2023-08-17T09:14:35.666Z"));
 
         assertEquals(withoutDetails, withDetails);
         assertEquals(withoutDetails.hashCode(), withDetails.hashCode());
