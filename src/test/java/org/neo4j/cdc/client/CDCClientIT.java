@@ -149,6 +149,46 @@ public class CDCClientIT {
     }
 
     /**
+     * The commit time column exists only under Cypher 25, and an unprefixed statement runs under the database's
+     * default language. Pinning the client to Cypher 25 must produce the column whatever that default is.
+     */
+    @Test
+    void currentWithCypher25ReturnsTransactionCommitTime() {
+        assumeTrue(currentColumns().contains("txCommitTime"), "server does not surface txCommitTime on db.cdc.current");
+
+        var client = new CDCClient(
+                driver,
+                () -> SessionConfig.builder().build(),
+                () -> TransactionConfig.builder().build(),
+                Duration.ZERO,
+                "25");
+
+        StepVerifier.create(client.current())
+                .assertNext(cv -> assertNotNull(cv.getTxCommitTime()))
+                .verifyComplete();
+    }
+
+    /**
+     * The mirror of the test above, and the one that actually proves the prefix reaches the server: Cypher 5 does
+     * not expose the column, so a null commit time here is only possible if the pin was applied.
+     */
+    @Test
+    void currentWithCypher5DoesNotReturnTransactionCommitTime() {
+        assumeTrue(currentColumns().contains("txCommitTime"), "server does not surface txCommitTime on db.cdc.current");
+
+        var client = new CDCClient(
+                driver,
+                () -> SessionConfig.builder().build(),
+                () -> TransactionConfig.builder().build(),
+                Duration.ZERO,
+                "5");
+
+        StepVerifier.create(client.current())
+                .assertNext(cv -> assertNull(cv.getTxCommitTime()))
+                .verifyComplete();
+    }
+
+    /**
      * {@code db.cdc.earliest} yields only {@code id}, so a change identifier obtained from it never carries a
      * commit time.
      */
