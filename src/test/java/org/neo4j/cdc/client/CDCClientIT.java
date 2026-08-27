@@ -155,7 +155,8 @@ public class CDCClientIT {
      */
     @Test
     void currentWithCypher25ReturnsTransactionCommitTime() {
-        assumeTrue(supportsCurrentWithCypherPrefixed(), "server does not surface txCommitTime when pinned to Cypher 25");
+        assumeTrue(
+                supportsCurrentWithCypherPrefixed(), "server does not surface txCommitTime when pinned to Cypher 25");
 
         StepVerifier.create(cdcClient("25").current())
                 .assertNext(cv -> assertNotNull(cv.getTxCommitTime()))
@@ -169,7 +170,8 @@ public class CDCClientIT {
      */
     @Test
     void currentWithCypher5DoesNotReturnTransactionCommitTime() {
-        assumeTrue(supportsCurrentWithCypherPrefixed(), "server does not surface txCommitTime when pinned to Cypher 25");
+        assumeTrue(
+                supportsCurrentWithCypherPrefixed(), "server does not surface txCommitTime when pinned to Cypher 25");
 
         StepVerifier.create(cdcClient("5").current())
                 .assertNext(cv -> assertNull(cv.getTxCommitTime()))
