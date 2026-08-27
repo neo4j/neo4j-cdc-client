@@ -63,6 +63,7 @@ import org.neo4j.driver.SessionConfig;
 import org.neo4j.driver.TransactionConfig;
 import org.neo4j.driver.Values;
 import org.neo4j.driver.exceptions.FatalDiscoveryException;
+import org.neo4j.driver.exceptions.Neo4jException;
 import org.testcontainers.containers.Neo4jContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -154,38 +155,59 @@ public class CDCClientIT {
      */
     @Test
     void currentWithCypher25ReturnsTransactionCommitTime() {
-        assumeTrue(currentColumns().contains("txCommitTime"), "server does not surface txCommitTime on db.cdc.current");
+        assumeTrue(supportsCurrentWithCypherPrefixed(), "server does not surface txCommitTime when pinned to Cypher 25");
 
-        var client = new CDCClient(
-                driver,
-                () -> SessionConfig.builder().build(),
-                () -> TransactionConfig.builder().build(),
-                Duration.ZERO,
-                "25");
-
-        StepVerifier.create(client.current())
+        StepVerifier.create(cdcClient("25").current())
                 .assertNext(cv -> assertNotNull(cv.getTxCommitTime()))
                 .verifyComplete();
     }
 
     /**
-     * The mirror of the test above, and the one that actually proves the prefix reaches the server: Cypher 5 does
-     * not expose the column, so a null commit time here is only possible if the pin was applied.
+     * The mirror of the test above. On a database whose default language is Cypher 25 this is what proves the pin
+     * reaches the server, since an unpinned client would return a commit time here. On a Cypher 5 default it passes
+     * trivially, which is why both directions are kept.
      */
     @Test
     void currentWithCypher5DoesNotReturnTransactionCommitTime() {
-        assumeTrue(currentColumns().contains("txCommitTime"), "server does not surface txCommitTime on db.cdc.current");
+        assumeTrue(supportsCurrentWithCypherPrefixed(), "server does not surface txCommitTime when pinned to Cypher 25");
 
-        var client = new CDCClient(
+        StepVerifier.create(cdcClient("5").current())
+                .assertNext(cv -> assertNull(cv.getTxCommitTime()))
+                .verifyComplete();
+    }
+
+    private static CDCClient cdcClient(String cypherVersion) {
+        return new CDCClient(
                 driver,
                 () -> SessionConfig.builder().build(),
                 () -> TransactionConfig.builder().build(),
                 Duration.ZERO,
-                "5");
+                cypherVersion);
+    }
 
-        StepVerifier.create(client.current())
-                .assertNext(cv -> assertNull(cv.getTxCommitTime()))
-                .verifyComplete();
+    /**
+     * Columns yielded by {@code db.cdc.current} on the server under test. The {@code txCommitTime} column is only
+     * present on new enough servers, so assertions on it have to be guarded.
+     */
+    private static List<String> currentColumns() {
+        try (var session = driver.session()) {
+            return session.run("CALL db.cdc.current()").single().keys();
+        }
+    }
+
+    /**
+     * Whether the server yields {@code txCommitTime} when {@code db.cdc.current} is pinned to Cypher 25.
+     */
+    private static boolean supportsCurrentWithCypherPrefixed() {
+        try (var session = driver.session()) {
+            return session.run("CYPHER 25 CALL db.cdc.current()")
+                    .single()
+                    .keys()
+                    .contains("txCommitTime");
+        } catch (Neo4jException e) {
+            // server is too old to parse the prefix
+            return false;
+        }
     }
 
     /**
@@ -202,16 +224,6 @@ public class CDCClientIT {
                     assertNull(cv.getTxCommitTime());
                 })
                 .verifyComplete();
-    }
-
-    /**
-     * Columns yielded by {@code db.cdc.current} on the server under test. The {@code txCommitTime} column is only
-     * present on new enough servers, so assertions on it have to be guarded.
-     */
-    private static List<String> currentColumns() {
-        try (var session = driver.session()) {
-            return session.run("CALL db.cdc.current()").single().keys();
-        }
     }
 
     @Test
