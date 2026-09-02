@@ -44,7 +44,7 @@ public class ChangeIdentifier {
     /**
      * Builds a change identifier from a {@code db.cdc.current} or {@code db.cdc.earliest} record.
      *
-     * <p>{@code txCommitTime} is yielded by {@code db.cdc.current} on new enough servers only, and is never
+     * <p>{@code txCommitTime} is yielded by {@code db.cdc.current} on Neo4j 2026-06 and later servers only, and is never
      * yielded by {@code db.cdc.earliest}. When it is absent, {@link #getTxCommitTime()} returns {@code null}.
      *
      * @param message record returned by the procedure
