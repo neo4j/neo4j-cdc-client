@@ -33,7 +33,7 @@ public final class ResultMapper {
     private ResultMapper() {}
 
     public static ChangeIdentifier parseChangeIdentifier(Map<String, Object> message) {
-        return new ChangeIdentifier((String) message.get(ID_FIELD));
+        return ChangeIdentifier.fromMap(message);
     }
 
     public static ChangeEvent parseChangeEvent(Map<String, Object> message) {

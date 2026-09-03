@@ -16,17 +16,43 @@
  */
 package org.neo4j.cdc.client.model;
 
+import java.time.ZonedDateTime;
+import java.util.Map;
 import java.util.Objects;
+import org.apache.commons.collections4.MapUtils;
 import org.jetbrains.annotations.NotNull;
 
 /**
  * Change identifier that identifies a change record.
  */
 public class ChangeIdentifier {
+    private static final String ID_FIELD = "id";
+    private static final String TX_COMMIT_TIME_FIELD = "txCommitTime";
+
     private final String id;
+    private final ZonedDateTime txCommitTime;
 
     public ChangeIdentifier(@NotNull String id) {
+        this(id, null);
+    }
+
+    public ChangeIdentifier(@NotNull String id, ZonedDateTime txCommitTime) {
         this.id = Objects.requireNonNull(id);
+        this.txCommitTime = txCommitTime;
+    }
+
+    /**
+     * Builds a change identifier from a {@code db.cdc.current} or {@code db.cdc.earliest} record.
+     *
+     * <p>{@code txCommitTime} is yielded by {@code db.cdc.current} on Neo4j 2026-06 and later servers only, and is never
+     * yielded by {@code db.cdc.earliest}. When it is absent, {@link #getTxCommitTime()} returns {@code null}.
+     *
+     * @param message record returned by the procedure
+     * @return change identifier
+     */
+    public static ChangeIdentifier fromMap(Map<String, Object> message) {
+        return new ChangeIdentifier(
+                MapUtils.getString(message, ID_FIELD), ModelUtils.getZonedDateTime(message, TX_COMMIT_TIME_FIELD));
     }
 
     /**
@@ -36,6 +62,15 @@ public class ChangeIdentifier {
      */
     public String getId() {
         return this.id;
+    }
+
+    /**
+     * Commit time of the transaction this change belongs to.
+     *
+     * @return transaction commit time, or {@code null} if the server does not surface it
+     */
+    public ZonedDateTime getTxCommitTime() {
+        return this.txCommitTime;
     }
 
     @Override
@@ -55,6 +90,6 @@ public class ChangeIdentifier {
 
     @Override
     public String toString() {
-        return String.format("ChangeIdentifier{id=%s}", id);
+        return String.format("ChangeIdentifier{id=%s, txCommitTime=%s}", id, txCommitTime);
     }
 }

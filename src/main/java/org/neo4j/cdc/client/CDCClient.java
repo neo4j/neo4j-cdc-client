@@ -57,6 +57,8 @@ public class CDCClient implements CDCService {
     private final TransactionConfigSupplier transactionConfigSupplier;
     private final Duration streamingPollInterval;
 
+    private final String currentStatement;
+
     /**
      * Construct an instance from a driver and an optional list of selectors.
      *
@@ -79,11 +81,13 @@ public class CDCClient implements CDCService {
      * @see Selector
      */
     public CDCClient(Driver driver, Duration streamingPollInterval, Selector... selectors) {
-        this.driver = Objects.requireNonNull(driver);
-        this.sessionConfigSupplier = () -> SessionConfig.builder().build();
-        this.transactionConfigSupplier = () -> TransactionConfig.builder().build();
-        this.streamingPollInterval = Objects.requireNonNull(streamingPollInterval);
-        this.selectors = selectors == null ? List.of() : Arrays.asList(selectors);
+        this(
+                driver,
+                () -> SessionConfig.builder().build(),
+                () -> TransactionConfig.builder().build(),
+                streamingPollInterval,
+                null,
+                selectors);
     }
 
     /**
@@ -114,11 +118,13 @@ public class CDCClient implements CDCService {
             SessionConfigSupplier sessionConfigSupplier,
             Duration streamingPollInterval,
             Selector... selectors) {
-        this.driver = Objects.requireNonNull(driver);
-        this.sessionConfigSupplier = sessionConfigSupplier;
-        this.transactionConfigSupplier = () -> TransactionConfig.builder().build();
-        this.streamingPollInterval = Objects.requireNonNull(streamingPollInterval);
-        this.selectors = selectors == null ? List.of() : Arrays.asList(selectors);
+        this(
+                driver,
+                sessionConfigSupplier,
+                () -> TransactionConfig.builder().build(),
+                streamingPollInterval,
+                null,
+                selectors);
     }
 
     /**
@@ -138,11 +144,57 @@ public class CDCClient implements CDCService {
             TransactionConfigSupplier transactionConfigSupplier,
             Duration streamingPollInterval,
             Selector... selectors) {
+        this(driver, sessionConfigSupplier, transactionConfigSupplier, streamingPollInterval, null, selectors);
+    }
+
+    /**
+     * Construct an instance that runs {@code db.cdc.current} under an explicit Cypher version.
+     *
+     * <p>{@code db.cdc.current} only yields {@code txCommitTime} under Cypher 25, and an unprefixed
+     * statement runs under the database's default language. Passing {@code "25"} here forces it
+     * regardless of that default.
+     *
+     * <p><strong>The caller must verify the server supports that Cypher version.</strong> The
+     * prefix is a syntax error otherwise, and because {@code db.cdc.current} runs first in the
+     * query transaction, that would fail every CDC query rather than degrading gracefully.
+     *
+     * @param driver Driver instance to use
+     * @param sessionConfigSupplier a supplier to customise session configuration
+     * @param transactionConfigSupplier a supplier to customise transaction configuration
+     * @param streamingPollInterval Polling interval to mimic streaming when using @link{stream} method
+     * @param cypherVersion Cypher version to prefix {@code db.cdc.current} with, e.g. {@code "25"};
+     *     {@code null} or blank leaves the statement unprefixed
+     * @param selectors List of selectors to query changes for
+     *
+     * @see Selector
+     */
+    public CDCClient(
+            Driver driver,
+            SessionConfigSupplier sessionConfigSupplier,
+            TransactionConfigSupplier transactionConfigSupplier,
+            Duration streamingPollInterval,
+            String cypherVersion,
+            Selector... selectors) {
         this.driver = Objects.requireNonNull(driver);
         this.sessionConfigSupplier = sessionConfigSupplier;
         this.transactionConfigSupplier = transactionConfigSupplier;
         this.streamingPollInterval = Objects.requireNonNull(streamingPollInterval);
         this.selectors = selectors == null ? List.of() : Arrays.asList(selectors);
+        this.currentStatement = buildCurrentStatement(cypherVersion);
+    }
+
+    /**
+     * Builds the {@code db.cdc.current} statement, pinned to an explicit Cypher version when one is
+     * given. Visible for testing.
+     *
+     * @param cypherVersion Cypher version to pin to, e.g. {@code "25"}; {@code null} or blank
+     *     leaves the statement unprefixed so it runs under the database's default language
+     * @return the statement to execute
+     */
+    static String buildCurrentStatement(String cypherVersion) {
+        return (cypherVersion == null || cypherVersion.isBlank())
+                ? CDC_CURRENT_STATEMENT
+                : "CYPHER " + cypherVersion + " " + CDC_CURRENT_STATEMENT;
     }
 
     @Override
@@ -152,7 +204,7 @@ public class CDCClient implements CDCService {
 
     @Override
     public Mono<ChangeIdentifier> current() {
-        return queryForChangeIdentifier(CDC_CURRENT_STATEMENT, "db.cdc.current");
+        return queryForChangeIdentifier(currentStatement, "db.cdc.current");
     }
 
     @Override
@@ -189,7 +241,7 @@ public class CDCClient implements CDCService {
     private @NonNull ReactiveTransactionCallback<Publisher<ChangeEvent>> queryChangesWork(
             ChangeIdentifier from, Consumer<ChangeIdentifier> lastKnownChangeIdentifierWhenNoResults) {
         return tx -> {
-            var current = Mono.from(tx.run("CALL db.cdc.current()"))
+            var current = Mono.from(tx.run(currentStatement))
                     .flatMap(result -> Mono.from(result.records()))
                     .map(MapAccessor::asMap)
                     .map(ResultMapper::parseChangeIdentifier);
@@ -243,7 +295,7 @@ public class CDCClient implements CDCService {
     private @NonNull ReactiveTransactionCallback<Publisher<ChangeEvent>> streamChangesWork(
             AtomicReference<ChangeIdentifier> cursor) {
         return tx -> {
-            var current = Mono.from(tx.run("CALL db.cdc.current()"))
+            var current = Mono.from(tx.run(currentStatement))
                     .flatMap(result -> Mono.from(result.records()))
                     .map(MapAccessor::asMap)
                     .map(ResultMapper::parseChangeIdentifier);

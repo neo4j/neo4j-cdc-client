@@ -19,6 +19,8 @@ package org.neo4j.cdc.client;
 import static java.util.Collections.emptyMap;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.time.Duration;
 import java.time.LocalDate;
@@ -61,6 +63,7 @@ import org.neo4j.driver.SessionConfig;
 import org.neo4j.driver.TransactionConfig;
 import org.neo4j.driver.Values;
 import org.neo4j.driver.exceptions.FatalDiscoveryException;
+import org.neo4j.driver.exceptions.Neo4jException;
 import org.testcontainers.containers.Neo4jContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -123,6 +126,105 @@ public class CDCClientIT {
 
         StepVerifier.create(client.current())
                 .assertNext(cv -> assertNotNull(cv.getId()))
+                .verifyComplete();
+    }
+
+    @Test
+    void currentReturnsTransactionDetails() {
+        assumeTrue(currentColumns().contains("txCommitTime"), "server does not surface txCommitTime on db.cdc.current");
+
+        var client = new CDCClient(driver, Duration.ZERO);
+        var before = ZonedDateTime.now();
+
+        try (Session session = driver.session()) {
+            session.run("CREATE ()").consume();
+        }
+
+        StepVerifier.create(client.current())
+                .assertNext(cv -> {
+                    assertNotNull(cv.getId());
+                    assertNotNull(cv.getTxCommitTime());
+                    assertThat(cv.getTxCommitTime()).isAfterOrEqualTo(before);
+                })
+                .verifyComplete();
+    }
+
+    /**
+     * The commit time column exists only under Cypher 25, and an unprefixed statement runs under the database's
+     * default language. Pinning the client to Cypher 25 must produce the column whatever that default is.
+     */
+    @Test
+    void currentWithCypher25ReturnsTransactionCommitTime() {
+        assumeTrue(
+                supportsCurrentWithCypherPrefixed(), "server does not surface txCommitTime when pinned to Cypher 25");
+
+        StepVerifier.create(cdcClient("25").current())
+                .assertNext(cv -> assertNotNull(cv.getTxCommitTime()))
+                .verifyComplete();
+    }
+
+    /**
+     * The mirror of the test above. On a database whose default language is Cypher 25 this is what proves the pin
+     * reaches the server, since an unpinned client would return a commit time here. On a Cypher 5 default it passes
+     * trivially, which is why both directions are kept.
+     */
+    @Test
+    void currentWithCypher5DoesNotReturnTransactionCommitTime() {
+        assumeTrue(
+                supportsCurrentWithCypherPrefixed(), "server does not surface txCommitTime when pinned to Cypher 25");
+
+        StepVerifier.create(cdcClient("5").current())
+                .assertNext(cv -> assertNull(cv.getTxCommitTime()))
+                .verifyComplete();
+    }
+
+    private static CDCClient cdcClient(String cypherVersion) {
+        return new CDCClient(
+                driver,
+                () -> SessionConfig.builder().build(),
+                () -> TransactionConfig.builder().build(),
+                Duration.ZERO,
+                cypherVersion);
+    }
+
+    /**
+     * Columns yielded by {@code db.cdc.current} on the server under test. The {@code txCommitTime} column is only
+     * present on new enough servers, so assertions on it have to be guarded.
+     */
+    private static List<String> currentColumns() {
+        try (var session = driver.session()) {
+            return session.run("CALL db.cdc.current()").single().keys();
+        }
+    }
+
+    /**
+     * Whether the server yields {@code txCommitTime} when {@code db.cdc.current} is pinned to Cypher 25.
+     */
+    private static boolean supportsCurrentWithCypherPrefixed() {
+        try (var session = driver.session()) {
+            return session.run("CYPHER 25 CALL db.cdc.current()")
+                    .single()
+                    .keys()
+                    .contains("txCommitTime");
+        } catch (Neo4jException e) {
+            // server is too old to parse the prefix
+            return false;
+        }
+    }
+
+    /**
+     * {@code db.cdc.earliest} yields only {@code id}, so a change identifier obtained from it never carries a
+     * commit time.
+     */
+    @Test
+    void earliestDoesNotReturnTransactionDetails() {
+        var client = new CDCClient(driver, Duration.ZERO);
+
+        StepVerifier.create(client.earliest())
+                .assertNext(cv -> {
+                    assertNotNull(cv.getId());
+                    assertNull(cv.getTxCommitTime());
+                })
                 .verifyComplete();
     }
 
