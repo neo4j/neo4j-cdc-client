@@ -10,11 +10,6 @@
   "scripts": {
     "prepare": "husky"
   },
-  "overrides": {
-    "danger": {
-      "undici": "6.27.0"
-    }
-  },
   "dependencies": {
     "neo4j-cdc-client": "link:"
   },
