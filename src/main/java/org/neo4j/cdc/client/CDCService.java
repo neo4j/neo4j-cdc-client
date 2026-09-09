@@ -62,6 +62,20 @@ public interface CDCService {
 
     /**
      * Returns the changes that happened to the database after the given change identifier.
+     * The returned Flux completes when we reach the end of change stream.
+     *
+     * @param from change identifier to query changes from.
+     * @param lastKnownChangeIdentifierWhenNoResults a consumer that will be called with the last seen change identifier when no results are found.
+     * @param onCurrent a consumer that will be called with the last committed change identifier of the database, regardless of whether any results are found.
+     * @return change events
+     */
+    Flux<ChangeEvent> query(
+            ChangeIdentifier from,
+            Consumer<ChangeIdentifier> lastKnownChangeIdentifierWhenNoResults,
+            Consumer<ChangeIdentifier> onCurrent);
+
+    /**
+     * Returns the changes that happened to the database after the given change identifier.
      * The returned Flux does not complete, and continues querying for new changes until the
      * Flux subscription is closed.
      * <p>
