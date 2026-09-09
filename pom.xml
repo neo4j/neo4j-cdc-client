@@ -262,8 +262,9 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
                     <includes>
-                        <include>**/*Test.java</include>
+                        <include>**/*Test</include>
                     </includes>
+                    <failIfNoTests>true</failIfNoTests>
                     <trimStackTrace>false</trimStackTrace>
                 </configuration>
             </plugin>
@@ -272,8 +273,9 @@
                 <artifactId>maven-failsafe-plugin</artifactId>
                 <configuration>
                     <includes>
-                        <include>**/*IT.java</include>
+                        <include>**/*IT</include>
                     </includes>
+                    <failIfNoTests>true</failIfNoTests>
                 </configuration>
                 <executions>
                     <execution>
