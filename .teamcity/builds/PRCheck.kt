@@ -22,8 +22,11 @@ class PRCheck(id: String, name: String) :
                 export PULL_REQUEST_URL=https://github.com/$GITHUB_OWNER/$GITHUB_REPOSITORY/%teamcity.build.branch%
                 
                 # process pull request
-                npm ci
-                npx danger ci --verbose --failOnErrors
+                npm install --global corepack@latest
+                corepack enable pnpm
+
+                pnpm install --frozen-lockfile
+                pnpm exec danger ci --verbose --failOnErrors
             """
                   .trimIndent()
 
