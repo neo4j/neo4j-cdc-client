@@ -217,6 +217,16 @@ public class CDCClient implements CDCService {
     @Override
     public Flux<ChangeEvent> query(
             ChangeIdentifier from, Consumer<ChangeIdentifier> lastKnownChangeIdentifierWhenNoResults) {
+        return query(from, lastKnownChangeIdentifierWhenNoResults, changeId -> {
+            // no-op
+        });
+    }
+
+    @Override
+    public Flux<ChangeEvent> query(
+            ChangeIdentifier from,
+            Consumer<ChangeIdentifier> lastKnownChangeIdentifierWhenNoResults,
+            Consumer<ChangeIdentifier> onCurrent) {
         var sessionConfig = sessionConfigSupplier.sessionConfig();
 
         return Flux.usingWhen(
@@ -224,11 +234,11 @@ public class CDCClient implements CDCService {
                         (ReactiveSession session) -> {
                             if (sessionConfig.defaultAccessMode() == AccessMode.WRITE) {
                                 return Flux.from(session.executeWrite(
-                                        queryChangesWork(from, lastKnownChangeIdentifierWhenNoResults),
+                                        queryChangesWork(from, lastKnownChangeIdentifierWhenNoResults, onCurrent),
                                         transactionConfigSupplier.transactionConfig()));
                             } else {
                                 return Flux.from(session.executeRead(
-                                        queryChangesWork(from, lastKnownChangeIdentifierWhenNoResults),
+                                        queryChangesWork(from, lastKnownChangeIdentifierWhenNoResults, onCurrent),
                                         transactionConfigSupplier.transactionConfig()));
                             }
                         },
@@ -239,7 +249,9 @@ public class CDCClient implements CDCService {
     }
 
     private @NonNull ReactiveTransactionCallback<Publisher<ChangeEvent>> queryChangesWork(
-            ChangeIdentifier from, Consumer<ChangeIdentifier> lastKnownChangeIdentifierWhenNoResults) {
+            ChangeIdentifier from,
+            Consumer<ChangeIdentifier> lastKnownChangeIdentifierWhenNoResults,
+            Consumer<ChangeIdentifier> onCurrent) {
         return tx -> {
             var current = Mono.from(tx.run(currentStatement))
                     .flatMap(result -> Mono.from(result.records()))
@@ -253,6 +265,7 @@ public class CDCClient implements CDCService {
                     selectors.stream().map(Selector::asMap).collect(Collectors.toList()));
 
             return current.flatMapMany(changeId -> {
+                onCurrent.accept(changeId);
                 log.trace("running db.cdc.query using parameters {}", params);
                 return Flux.from(tx.run(CDC_QUERY_STATEMENT, params))
                         .flatMap(ReactiveResult::records)

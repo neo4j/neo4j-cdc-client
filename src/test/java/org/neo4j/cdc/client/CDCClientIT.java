@@ -261,6 +261,68 @@ public class CDCClientIT {
     }
 
     @Test
+    void currentChangeIdIsReportedWhenResultsAreFound() {
+        var client = new CDCClient(driver, Duration.ZERO);
+
+        var from = currentChangeId(driver.session());
+        try (Session session = driver.session()) {
+            session.run("CREATE ()").consume();
+        }
+        var last = currentChangeId(driver.session());
+
+        var reportedWhenNoResults = new AtomicReference<ChangeIdentifier>();
+        var reportedCurrent = new AtomicReference<ChangeIdentifier>();
+        StepVerifier.create(client.query(from, reportedWhenNoResults::set, reportedCurrent::set))
+                .assertNext(n -> assertThat(n).extracting(ChangeEvent::getEvent).isInstanceOf(NodeEvent.class))
+                .verifyComplete();
+
+        assertThat(reportedCurrent.get()).isEqualTo(last);
+        assertNull(reportedWhenNoResults.get());
+    }
+
+    @Test
+    void currentChangeIdIsReportedWhenOnlyUnselectedChangesExist() {
+        var client = new CDCClient(
+                driver,
+                Duration.ZERO,
+                EntitySelector.builder().withChangesTo(Set.of("NonExisting")).build());
+
+        var from = currentChangeId(driver.session());
+        try (Session session = driver.session()) {
+            session.run("CREATE ()").consume();
+        }
+        var last = currentChangeId(driver.session());
+
+        var reportedCurrent = new AtomicReference<ChangeIdentifier>();
+        StepVerifier.create(client.query(from, changeId -> {}, reportedCurrent::set))
+                .verifyComplete();
+
+        assertThat(reportedCurrent.get()).isEqualTo(last);
+    }
+
+    @Test
+    void currentChangeIdReportsTransactionCommitTimeWhenResultsAreFound() {
+        assumeTrue(currentColumns().contains("txCommitTime"), "server does not surface txCommitTime on db.cdc.current");
+
+        var client = new CDCClient(driver, Duration.ZERO);
+
+        var from = currentChangeId(driver.session());
+        var before = ZonedDateTime.now();
+        try (Session session = driver.session()) {
+            session.run("CREATE ()").consume();
+        }
+
+        var reportedCurrent = new AtomicReference<ChangeIdentifier>();
+        StepVerifier.create(client.query(from, changeId -> {}, reportedCurrent::set))
+                .assertNext(n -> assertThat(n).extracting(ChangeEvent::getEvent).isInstanceOf(NodeEvent.class))
+                .verifyComplete();
+
+        var txCommitTime = reportedCurrent.get().getTxCommitTime();
+        assertNotNull(txCommitTime);
+        assertThat(txCommitTime).isAfterOrEqualTo(before);
+    }
+
+    @Test
     void respectsSessionConfigSupplier() {
         var client = new CDCClient(
                 driver,
