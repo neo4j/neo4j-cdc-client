@@ -39,7 +39,7 @@
         <assertj-core.version>3.27.7</assertj-core.version>
         <build-resources.version>2026.07.1</build-resources.version>
         <commons-collections4.version>4.6.0</commons-collections4.version>
-        <commons-lang3.version>3.20.0</commons-lang3.version>
+        <commons-lang3.version>3.21.0</commons-lang3.version>
         <java.version>11</java.version>
         <junit-jupiter.version>5.14.4</junit-jupiter.version>
         <license-maven-plugin.version>5.1.2</license-maven-plugin.version>
@@ -63,7 +63,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <reactive-streams.version>1.0.4</reactive-streams.version>
         <reactor-release-train.version>2025.0.7</reactor-release-train.version>
-        <slf4j-api.version>2.0.19</slf4j-api.version>
+        <slf4j-api.version>2.0.20</slf4j-api.version>
         <sortpom-maven-plugin.version>4.0.0</sortpom-maven-plugin.version>
         <spotless-maven-plugin.version>2.46.1</spotless-maven-plugin.version>
         <testcontainers.version>1.21.4</testcontainers.version>
