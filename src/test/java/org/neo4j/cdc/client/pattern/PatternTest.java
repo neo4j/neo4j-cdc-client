@@ -231,15 +231,16 @@ public class PatternTest {
 
     @Test
     void shouldParseRelationshipPatterns() {
-        List.of("()-[:WORKS_FOR]->()", "()-[:WORKS_FOR{}]->()").forEach(pattern -> assertThat(Pattern.parse(pattern))
-                .containsExactly(new RelationshipPattern(
-                        "WORKS_FOR",
-                        new NodePattern(emptySet(), emptyMap(), emptySet(), emptySet()),
-                        new NodePattern(emptySet(), emptyMap(), emptySet(), emptySet()),
-                        false,
-                        emptyMap(),
-                        emptySet(),
-                        emptySet())));
+        List.of("()-[:WORKS_FOR]->()", "()-[:WORKS_FOR{}]->()")
+                .forEach(pattern -> assertThat(Pattern.parse(pattern))
+                        .containsExactly(new RelationshipPattern(
+                                "WORKS_FOR",
+                                new NodePattern(emptySet(), emptyMap(), emptySet(), emptySet()),
+                                new NodePattern(emptySet(), emptyMap(), emptySet(), emptySet()),
+                                false,
+                                emptyMap(),
+                                emptySet(),
+                                emptySet())));
 
         assertThat(Pattern.parse("()-[:WORKS_FOR {id: 5}]->()"))
                 .containsExactly(new RelationshipPattern(
