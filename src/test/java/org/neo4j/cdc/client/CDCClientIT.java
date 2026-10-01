@@ -425,8 +425,10 @@ public class CDCClientIT {
             session.run("CREATE (p:Person)", emptyMap()).consume();
 
             StepVerifier.create(client.query(current))
-                    .assertNext(event -> assertThat(event).satisfies(e -> assertThat(e.getMetadata())
-                            .satisfies(m -> assertThat(m.getAdditionalEntries()).isEmpty())))
+                    .assertNext(event -> assertThat(event)
+                            .satisfies(e -> assertThat(e.getMetadata())
+                                    .satisfies(m ->
+                                            assertThat(m.getAdditionalEntries()).isEmpty())))
                     .verifyComplete();
         }
     }
@@ -1023,11 +1025,13 @@ public class CDCClientIT {
                         .query(current))
                 .recordWith(ArrayList::new)
                 .thenConsumeWhile(x -> true)
-                .consumeRecordedWith(coll -> assertThat(coll).hasSize(200).allSatisfy(e -> assertThat(e)
-                        .satisfies(c -> assertThat(c.getMetadata().getAuthenticatedUser())
-                                .isEqualTo("test"))
-                        .extracting("event.after.labels", InstanceOfAssertFactories.list(String.class))
-                        .containsAnyOf("Test", "Impersonated")))
+                .consumeRecordedWith(coll -> assertThat(coll)
+                        .hasSize(200)
+                        .allSatisfy(e -> assertThat(e)
+                                .satisfies(c -> assertThat(c.getMetadata().getAuthenticatedUser())
+                                        .isEqualTo("test"))
+                                .extracting("event.after.labels", InstanceOfAssertFactories.list(String.class))
+                                .containsAnyOf("Test", "Impersonated")))
                 .verifyComplete();
 
         // verify authenticatedUser = neo4j
@@ -1039,11 +1043,13 @@ public class CDCClientIT {
                         .query(current))
                 .recordWith(ArrayList::new)
                 .thenConsumeWhile(x -> true)
-                .consumeRecordedWith(coll -> assertThat(coll).hasSize(100).allSatisfy(e -> assertThat(e)
-                        .satisfies(c -> assertThat(c.getMetadata().getAuthenticatedUser())
-                                .isEqualTo("neo4j"))
-                        .extracting("event.after.labels", InstanceOfAssertFactories.list(String.class))
-                        .containsAnyOf("Neo4j")))
+                .consumeRecordedWith(coll -> assertThat(coll)
+                        .hasSize(100)
+                        .allSatisfy(e -> assertThat(e)
+                                .satisfies(c -> assertThat(c.getMetadata().getAuthenticatedUser())
+                                        .isEqualTo("neo4j"))
+                                .extracting("event.after.labels", InstanceOfAssertFactories.list(String.class))
+                                .containsAnyOf("Neo4j")))
                 .verifyComplete();
 
         // verify executingUser = neo4j
@@ -1055,11 +1061,13 @@ public class CDCClientIT {
                         .query(current))
                 .recordWith(ArrayList::new)
                 .thenConsumeWhile(x -> true)
-                .consumeRecordedWith(coll -> assertThat(coll).hasSize(200).allSatisfy(e -> assertThat(e)
-                        .satisfies(c ->
-                                assertThat(c.getMetadata().getExecutingUser()).isEqualTo("neo4j"))
-                        .extracting("event.after.labels", InstanceOfAssertFactories.list(String.class))
-                        .containsAnyOf("Neo4j", "Impersonated")))
+                .consumeRecordedWith(coll -> assertThat(coll)
+                        .hasSize(200)
+                        .allSatisfy(e -> assertThat(e)
+                                .satisfies(c -> assertThat(c.getMetadata().getExecutingUser())
+                                        .isEqualTo("neo4j"))
+                                .extracting("event.after.labels", InstanceOfAssertFactories.list(String.class))
+                                .containsAnyOf("Neo4j", "Impersonated")))
                 .verifyComplete();
 
         // verify executingUser = test
@@ -1071,11 +1079,13 @@ public class CDCClientIT {
                         .query(current))
                 .recordWith(ArrayList::new)
                 .thenConsumeWhile(x -> true)
-                .consumeRecordedWith(coll -> assertThat(coll).hasSize(100).allSatisfy(e -> assertThat(e)
-                        .satisfies(c ->
-                                assertThat(c.getMetadata().getExecutingUser()).isEqualTo("test"))
-                        .extracting("event.after.labels", InstanceOfAssertFactories.list(String.class))
-                        .containsAnyOf("Test")))
+                .consumeRecordedWith(coll -> assertThat(coll)
+                        .hasSize(100)
+                        .allSatisfy(e -> assertThat(e)
+                                .satisfies(c -> assertThat(c.getMetadata().getExecutingUser())
+                                        .isEqualTo("test"))
+                                .extracting("event.after.labels", InstanceOfAssertFactories.list(String.class))
+                                .containsAnyOf("Test")))
                 .verifyComplete();
 
         // verify authenticatedUser = test, executingUser = neo4j
@@ -1088,13 +1098,15 @@ public class CDCClientIT {
                         .query(current))
                 .recordWith(ArrayList::new)
                 .thenConsumeWhile(x -> true)
-                .consumeRecordedWith(coll -> assertThat(coll).hasSize(100).allSatisfy(e -> assertThat(e)
-                        .satisfies(c -> assertThat(c.getMetadata().getAuthenticatedUser())
-                                .isEqualTo("test"))
-                        .satisfies(c ->
-                                assertThat(c.getMetadata().getExecutingUser()).isEqualTo("neo4j"))
-                        .extracting("event.after.labels", InstanceOfAssertFactories.list(String.class))
-                        .containsAnyOf("Impersonated")))
+                .consumeRecordedWith(coll -> assertThat(coll)
+                        .hasSize(100)
+                        .allSatisfy(e -> assertThat(e)
+                                .satisfies(c -> assertThat(c.getMetadata().getAuthenticatedUser())
+                                        .isEqualTo("test"))
+                                .satisfies(c -> assertThat(c.getMetadata().getExecutingUser())
+                                        .isEqualTo("neo4j"))
+                                .extracting("event.after.labels", InstanceOfAssertFactories.list(String.class))
+                                .containsAnyOf("Impersonated")))
                 .verifyComplete();
     }
 
@@ -1135,11 +1147,13 @@ public class CDCClientIT {
                         .query(current))
                 .recordWith(ArrayList::new)
                 .thenConsumeWhile(x -> true)
-                .consumeRecordedWith(coll -> assertThat(coll).hasSize(100).allSatisfy(e -> assertThat(e)
-                        .satisfies(
-                                c -> assertThat(c.getMetadata().getTxMetadata()).contains(Map.entry("app", "Test")))
-                        .extracting("event.after.labels", InstanceOfAssertFactories.list(String.class))
-                        .containsOnly("Test")))
+                .consumeRecordedWith(coll -> assertThat(coll)
+                        .hasSize(100)
+                        .allSatisfy(e -> assertThat(e)
+                                .satisfies(c -> assertThat(c.getMetadata().getTxMetadata())
+                                        .contains(Map.entry("app", "Test")))
+                                .extracting("event.after.labels", InstanceOfAssertFactories.list(String.class))
+                                .containsOnly("Test")))
                 .verifyComplete();
 
         StepVerifier.create(new CDCClient(
@@ -1150,12 +1164,14 @@ public class CDCClientIT {
                         .query(current))
                 .recordWith(ArrayList::new)
                 .thenConsumeWhile(x -> true)
-                .consumeRecordedWith(coll -> assertThat(coll).hasSize(200).allSatisfy(e -> assertThat(e)
-                        .satisfies(
-                                c -> assertThat(c.getMetadata().getTxMetadata()).contains(Map.entry("app", "Other")))
-                        .extracting("event.after.labels", InstanceOfAssertFactories.list(String.class))
-                        .containsAnyOf("Other", "Another")
-                        .doesNotContain("Test")))
+                .consumeRecordedWith(coll -> assertThat(coll)
+                        .hasSize(200)
+                        .allSatisfy(e -> assertThat(e)
+                                .satisfies(c -> assertThat(c.getMetadata().getTxMetadata())
+                                        .contains(Map.entry("app", "Other")))
+                                .extracting("event.after.labels", InstanceOfAssertFactories.list(String.class))
+                                .containsAnyOf("Other", "Another")
+                                .doesNotContain("Test")))
                 .verifyComplete();
 
         StepVerifier.create(new CDCClient(
@@ -1166,12 +1182,14 @@ public class CDCClientIT {
                         .query(current))
                 .recordWith(ArrayList::new)
                 .thenConsumeWhile(x -> true)
-                .consumeRecordedWith(coll -> assertThat(coll).hasSize(100).allSatisfy(e -> assertThat(e)
-                        .satisfies(c -> assertThat(c.getMetadata().getTxMetadata())
-                                .contains(Map.entry("app", "Other"), Map.entry("appUser", "test")))
-                        .extracting("event.after.labels", InstanceOfAssertFactories.list(String.class))
-                        .contains("Another")
-                        .doesNotContain("Test", "Other")))
+                .consumeRecordedWith(coll -> assertThat(coll)
+                        .hasSize(100)
+                        .allSatisfy(e -> assertThat(e)
+                                .satisfies(c -> assertThat(c.getMetadata().getTxMetadata())
+                                        .contains(Map.entry("app", "Other"), Map.entry("appUser", "test")))
+                                .extracting("event.after.labels", InstanceOfAssertFactories.list(String.class))
+                                .contains("Another")
+                                .doesNotContain("Test", "Other")))
                 .verifyComplete();
     }
 }
