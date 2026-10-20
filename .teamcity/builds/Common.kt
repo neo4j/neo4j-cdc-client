@@ -37,7 +37,7 @@ const val SEMGREP_DOCKER_IMAGE = "%ecr-registry-connectors%:semgrep-latest"
 const val ECR_CONNECTION_ID_ENG = "PROJECT_EXT_124"
 const val ECR_CONNECTION_ID_BUILD = "PROJECT_EXT_107"
 val DOCKER_REGISTRIES = sequenceOf(ECR_CONNECTION_ID_ENG, ECR_CONNECTION_ID_BUILD)
-const val DEFAULT_BRANCH = "main"
+const val DEFAULT_BRANCH = "1.0"
 
 enum class JavaVersion(val version: String, val dockerImage: String) {
   V_11(version = "11", dockerImage = "%ecr-registry-connectors%:jdk-11-latest"),
