@@ -1,0 +1,66 @@
+version: 2
+updates:
+  - package-ecosystem: "maven"
+    directory: "/"
+    schedule:
+      interval: "daily"
+    cooldown:
+      default-days: 3
+    open-pull-requests-limit: 10
+    target-branch: "1.0"
+    ignore:
+      # requires JVM 17
+      - dependency-name: "org.junit.jupiter:junit-jupiter"
+        versions: "[6.0.1,)"
+      # requires JVM 17
+      - dependency-name: "com.diffplug.spotless:spotless-maven-plugin"
+        versions: "[3.0.0,)"
+      # pin 4.1.x for compatibility with Neo4j Kafka Connector v5
+      - dependency-name: "io.netty:netty-bom"
+        versions: "[4.2.15.Final,)"
+
+  - package-ecosystem: "maven"
+    directory: "/"
+    schedule:
+      interval: "daily"
+    cooldown:
+      default-days: 3
+    open-pull-requests-limit: 10
+    target-branch: "2.0"
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      time: "07:00"
+      timezone: "Etc/GMT"
+    cooldown:
+      default-days: 3
+    open-pull-requests-limit: 10
+    target-branch: "1.0"
+    commit-message:
+      prefix: "build(repo)"
+      prefix-development: "build(repo)"
+      include: "scope"
+    groups:
+      commitlint:
+        patterns:
+          - "@commitlint/*"
+
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      time: "07:00"
+      timezone: "Etc/GMT"
+    cooldown:
+      default-days: 3
+    open-pull-requests-limit: 10
+    target-branch: "2.0"
+    commit-message:
+      prefix: "build(repo)"
+      prefix-development: "build(repo)"
+      include: "scope"
+    groups:
+      commitlint:
+        patterns:
+          - "@commitlint/*"
