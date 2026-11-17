@@ -14,5 +14,5 @@
   "dependencies": {
     "neo4j-cdc-client": "link:"
   },
-  "packageManager": "pnpm@12.8.1"
+  "packageManager": "pnpm@12.21.0"
 }
